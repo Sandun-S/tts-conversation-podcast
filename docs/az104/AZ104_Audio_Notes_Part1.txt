@@ -1,0 +1,157 @@
+Alright bro, sit back. I'm going to teach this like we're in a classroom together. I'm skipping bullets and symbols so your text-to-speech reads it smoothly. This is Part 1 of 6. Say "next" when you finish and I'll continue.
+
+The plan:
+- Part 1: Azure RBAC, the biggest topic in your whole exam.
+- Part 2: Microsoft Entra ID, governance, and policy.
+- Part 3: Storage.
+- Part 4: Networking.
+- Part 5: Compute.
+- Part 6: Monitoring and backup, plus a rapid-fire review.
+
+PART ONE. AZURE ROLE BASED ACCESS CONTROL.
+
+Chapter one. The big idea.
+
+Nearly half of your questions were secretly RBAC questions. If you master this one topic, you gain a lot of marks. RBAC answers one question: who can do what, and where.
+
+Every role assignment has exactly three parts. First, a security principal, which is the who. That can be a user, a group, a service principal, or a managed identity. Second, a role definition, which is the what. That's a bundle of permissions, like Reader or Contributor. Third, a scope, which is the where.
+
+Say it like a sentence: this person, gets this role, at this scope.
+
+Chapter two. Scope and inheritance.
+
+There are four levels of scope, from top to bottom. Management group, then subscription, then resource group, then resource. Memorize that order. Permissions flow downhill only. A role at the top is inherited by everything underneath. A role at a lower level never flows upward and never flows sideways.
+
+Think of a building. The management group is the whole building, the subscription is a floor, the resource group is a room, and the resource is a cabinet in the room. A master key to the building opens every floor, room and cabinet. A key to one cabinet opens only that cabinet.
+
+Also remember that RBAC is additive. If you have Reader at the subscription and Contributor on one resource, you get both added together. There's no subtracting. Deny assignments exist, but only Azure creates them, for example with Blueprints. For exam logic, permissions only add up.
+
+Chapter three. The four classic roles.
+
+Memorize these four in order of power.
+
+Reader can see everything but change nothing.
+
+Contributor can create and manage all resources, but cannot give anyone access. That's the key trap. Contributor can build the house but cannot hand out keys.
+
+Owner can do everything Contributor does, and can also assign roles to others.
+
+User Access Administrator can only manage access. It cannot create or manage resources. It hands out keys but can't build anything.
+
+Then there's a newer role called Role Based Access Control Administrator. It manages role assignments like User Access Administrator, but it's narrower, and you can add conditions to limit which roles it can assign. When a question says least privilege and assigning roles, this one wins.
+
+Chapter four. Question 1. Web Deploy to App Service.
+
+The developers publish with Web Deploy and must use their Entra ID accounts. The answer was Website Contributor.
+
+The logic: FTPS credentials, whether app level or user level, are not Entra ID sign-in. They're separate username and password pairs. So the moment a question says "authenticate with Entra ID" and "deploy to a web app", think RBAC role, and the least privileged one that fits. Website Contributor manages web apps without the power of Owner. Owner would break least privilege.
+
+Memory hook: web app plus Entra equals Website Contributor. FTPS equals not Entra.
+
+Chapter five. Questions 8, 9 and 10. The Jordan and Taylor puzzle.
+
+Let me restate the setup. Two subscriptions: Falcon under management group CorpMG, and Osprey under OpsMG. Falcon has webVM. Osprey has dbVM and cacheVM.
+
+Jordan has Virtual Machine Contributor at CorpMG, and Virtual Machine User Login at the Osprey subscription. Taylor has Virtual Machine Contributor at OpsMG, Virtual Machine User Login at Falcon, and Virtual Machine User Login at cacheVM.
+
+Question 8: can Jordan sign in to webVM? False. Jordan's Contributor covers Falcon through CorpMG, but Virtual Machine Contributor manages the VM and does not let you log in. Login is a data plane action. Jordan's login role is only on Osprey, and webVM lives in Falcon.
+
+Here's the big lesson. Managing a VM and logging into a VM are separate permissions. Virtual Machine Contributor is the control plane. Virtual Machine User Login and Virtual Machine Administrator Login are the data plane, meaning access inside the machine.
+
+Question 9: can Taylor manage disks and snapshots of webVM? False. Taylor's management role is at OpsMG, which covers Osprey, and webVM is in Falcon. Taylor only has a login role in Falcon, and login can't manage disks. Always trace each role to its scope first.
+
+Question 10: can Taylor manage disks and snapshots of cacheVM? You answered true and the answer was false. Here the scope is right, because cacheVM is in Osprey under OpsMG. The catch is the exam's reasoning: Virtual Machine Contributor handles the VM and its disks, but not snapshot management. The exam says that needs something like Disk Snapshot Contributor. So the habit is two checks. First, is the scope right. Second, does the role actually contain that action. You passed the first and missed the second. Remember: VM Contributor manages VMs and disks, but not snapshots.
+
+Chapter six. Questions 2, 3 and 4. RBAC conditions.
+
+Conditions are extra "if" filters on a role assignment. Here is how to decode them.
+
+Priya has Storage Blob Data Reader at the whole subscription, with RuleAlpha. RuleAlpha says the action is not a blob read, OR the container is named archive. Read this as: reads are allowed only in containers named archive.
+
+Question 2: can Priya read file2.dat, which is in the container media? False. It's a read, so the first half is false, and media isn't archive, so the second half is false. Both halves false means the condition fails.
+
+Question 3: can Priya read file3.dat? True. It's in a container named archive. The subscription scope means the storage account doesn't matter. Any account's archive container works.
+
+Sam has Storage Blob Data Owner at storagenorth, with RuleBeta. RuleBeta says: the action is not a write, OR the blob path contains the number 2. Read this as: writes are allowed only to blobs with 2 in the path.
+
+Question 4: can Sam read file1.dat? True. A read is not a write, so the first half is true. In an OR, one true half makes the whole condition true.
+
+Master trick for conditions. Take the sentence "NOT this action, OR that thing" and flip it. It means "this action is only allowed when that thing is true." For any other action, the condition doesn't get in the way. Also, conditions work only for blob data and queue data, as Question 76 confirmed. Containers and queues yes. File shares and tables no.
+
+Chapter seven. Questions 19 to 22. The storage keys puzzle.
+
+The goal: user A must list and regenerate the storage account keys.
+
+Wrong answers: Storage Account Encryption Scope Contributor, which only deals with encryption scopes, and Reader and Data Access, which can list keys but cannot regenerate them. Right answers: Storage Account Key Operator Service Role, and Storage Account Contributor.
+
+You got Question 19 wrong, so burn this in. Listing and regenerating keys needs the Microsoft.Storage listKeys and regenerateKey actions. Key Operator has exactly those, and Storage Account Contributor has them as part of broad storage management. Reader and Data Access can list keys but not regenerate them. Encryption Scope Contributor has nothing to do with keys.
+
+Memory hook: keys equals Key Operator, or Storage Account Contributor.
+
+Chapter eight. Questions 33 to 35. Morgan, Riley and Casey.
+
+Morgan is Contributor at the management group Global-MG2, which holds ZenithSub, which contains vm-prod1. Can Morgan resize vm-prod1? True. Contributor flows down and includes VM write.
+
+Riley has Storage Account Contributor only at the storeA1 scope, a single resource. Can Riley create a new storage account in rg-data? You said true and it was false. Think about it: creating a new resource is a write at the resource group scope. Riley's role sits on one cabinet and can't create a new cabinet in the room. Rule: to create something new, you need the role at the container, meaning the resource group or higher. A role on one resource only allows actions on that resource.
+
+Casey has User Access Administrator at the Tenant Root Group, which sits above everything. Can Casey give Morgan Owner on rg-vm? True. Casey controls access everywhere underneath.
+
+Chapter nine. Questions 45 and 46. Dana, Priya, Sam.
+
+Dana is Owner, Priya is Security Admin, Sam is Network Contributor.
+
+Who can create a subnet in the virtual network? Dana and Sam. Owner can do everything, and Network Contributor manages networking. Security Admin deals with security policies, not networks.
+
+Who can assign the Reader role on the virtual network? Dana only. Only Owner can assign roles here. Network Contributor manages network resources, not access.
+
+Memory hook: to assign roles, you need Owner, User Access Administrator, or RBAC Administrator. Nothing else can.
+
+Chapter ten. Questions 59 and 60. Carlos Vega and the private DNS link.
+
+Carlos must link a private DNS zone, corezone1.com, to a virtual network, NetVnet1. He needs two roles: Private DNS Zone Contributor, and Network Contributor.
+
+Why both? Linking touches two resources. On the DNS zone he needs to create a virtual network link. On the virtual network he needs the join action, which Network Contributor has.
+
+Question 60 asked where to assign them. You picked the resource groups, and the answer was the two resources directly: NetVnet1 and corezone1.com. This is least privilege done properly. The resource groups hold other resources too, so assigning there gives too much. Rule: when the question says least privilege, assign at the narrowest scope that works.
+
+Chapter eleven. Questions 64, 65 and 66. Priya and the NSG.
+
+Priya's roles: Contributor on the NSG nsg-web01 only, Reader on the subscription, Storage Account Contributor on the resource group rg-network.
+
+Can she create a storage account in rg-network? True. The Storage Account Contributor role is at resource group scope, so it permits creating storage accounts there.
+
+Can she modify the DNS settings of the network interface nic-web01? You said true and it's false. The NSG is associated with the network interface, but that does not make the network interface a child of the NSG. Scope inheritance follows the hierarchy, not associations. Contributor on the NSG gives her nothing on the NIC.
+
+Can she add a deny rule to nsg-web01? True. Contributor on the NSG allows rule changes.
+
+Hook: association is not inheritance. Only the hierarchy of management group, subscription, resource group, resource passes permissions down.
+
+Chapter twelve. Questions 73 and 74. Priya and Sam on storage.
+
+Priya must view data in any storage account. The exam's answer was Reader and Data Access. You chose Storage Account Contributor, which is a management role. It does not give data viewing, and it's more than needed. Reader and Data Access was the exam's pick for least privilege.
+
+Sam must assign the Contributor role. The answer is Role Based Access Control Administrator, with User Access Administrator as the broader alternative. Under least privilege, the narrower RBAC Administrator wins.
+
+Chapter thirteen. Questions 78, 79 and 80. User1, Group1 and the management group.
+
+Group1 has Reader at MG1. Sub1 and Sub2 are under MG1. So Group1 members can view the Azure Functions config. True.
+
+User1 has User Access Administrator at MG1. Can User1 assign Owner on RG1? True. Access administration flows down.
+
+Can User1 create a new resource group and deploy a VM into it? False. Creating a resource group needs Contributor or Owner at the subscription level. User1 has only VM Contributor there, and Contributor on RG1 alone.
+
+Chapter fourteen. Questions 67 and 68, 89 and 90. Custom roles.
+
+A custom role definition has these parts: actions, notActions, dataActions, notDataActions, and assignableScopes.
+
+Actions are control plane. That means managing resources, like create, update, delete. Data actions are data plane, meaning working with what's inside the resource, like reading blob contents or logging into a VM.
+
+Question 67: to let users sign in to the VMs, which section do you change? dataActions. Login actions are data plane.
+
+Question 68: to limit where the role can be assigned to a resource group, you change assignableScopes. Hook: where it can be assigned equals assignableScopes. What it can do equals actions or dataActions.
+
+Question 89: all management operations on a virtual network means Microsoft.Network/virtualNetworks/*. The star is the wildcard for everything.
+
+Question 90: just viewing storage account settings means Microsoft.Storage/storageAccounts/read. That's least privilege. The blobs read option is data only, which is the wrong layer.
+
+That's the end of Part 1. The big RBAC rules to carry with you: check the scope first, then the role's actual actions. Control plane is not data plane. Associations don't inherit. Least privilege means narrowest role and narrowest scope. Say "next" for Part 2.

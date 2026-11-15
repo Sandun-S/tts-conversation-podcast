@@ -1,0 +1,161 @@
+AZ-104 AUDIO NOTES. PART 2 OF 6.
+MICROSOFT ENTRA ID, GOVERNANCE, POLICY, KEY VAULT AND DISK ENCRYPTION.
+
+Welcome back, bro. This is Part 2. In Part 1 we did RBAC. Now we cover identity, governance, and a few security topics. Same style as before. I talk, you listen, and at the end of each chapter I give you a memory hook.
+
+In this part we cover these chapters. Chapter one, Entra ID basics and licensing. Chapter two, self service password reset. Chapter three, group naming policy. Chapter four, custom security attributes. Chapter five, Azure Policy. Chapter six, moving resources. Chapter seven, managed identities and Key Vault. Chapter eight, Azure Disk Encryption. Chapter nine, bonus governance topics the exam loves: management groups, tags and locks.
+
+------------------------------------------------------------
+CHAPTER ONE. ENTRA ID BASICS AND LICENSING
+------------------------------------------------------------
+
+First, a very important separation. There are two worlds in Azure access. World one is Microsoft Entra ID roles. Those control the directory: users, groups, apps, passwords. Example roles are Global Administrator and User Administrator. World two is Azure RBAC roles. Those control Azure resources: virtual machines, storage, networks. Example roles are Owner and Contributor.
+
+The exam loves to mix them up. Remember: Entra roles manage identities. Azure roles manage resources. In Question 45, one wrong option said you need Global Administrator to create a subnet. That is false. Subnets are Azure resources, so Azure RBAC decides. Entra roles do not matter there.
+
+Now licensing. Question 38. You have an Entra ID Free tenant, and you bought a Microsoft Fabric license. Which identities can receive the license? Only the user. Not the security group, not the Microsoft 365 group.
+
+Why? Because group based licensing, meaning assigning a license to a group so every member gets it, requires a paid Entra ID tier. Entra ID P1 or P2. On the Free tier, you assign licenses one user at a time.
+
+Memory hook. Free tier means users only. Group licensing needs P1 or P2.
+
+------------------------------------------------------------
+CHAPTER TWO. SELF SERVICE PASSWORD RESET, SSPR
+------------------------------------------------------------
+
+Question 39. You turn on SSPR in the portal. For which identities can you enable it? The answer was the security group and the Microsoft 365 group. Not an individual user.
+
+Here is the logic. SSPR has three settings: None, Selected, and All. If you choose Selected, you pick a group. You cannot pick a single user directly. So if you want SSPR for just one person, you must put that person in a group first, and then select the group.
+
+Memory hook. SSPR equals All, or a group. Never a single user.
+
+------------------------------------------------------------
+CHAPTER THREE. GROUP NAMING POLICY
+------------------------------------------------------------
+
+Question 32. Whenever someone creates a new Microsoft 365 group, its name must automatically become the office first, then the requested name. So the format is Office followed by RequestedName.
+
+The answer was steps 2, 3, 6. In plain words. Step one, create a group naming policy. Step two, set Add prefix to Attribute. Step three, choose the attribute type as Office.
+
+Here is the key idea. A group naming policy can add a prefix or a suffix. Each one can be a fixed string, like the text "GRP", or an attribute taken from the creator's profile, like Department, Office or Country. Because the office comes from the creator's profile and not from fixed text, you use Attribute, not String. And because Office comes first, you use Prefix, not Suffix.
+
+Memory hook. Comes first means prefix. Comes from the user's profile means attribute. Fixed text means string.
+
+Also remember: naming policy applies to Microsoft 365 groups, and you set it up in the Entra admin center under Groups, then Naming policy.
+
+------------------------------------------------------------
+CHAPTER FOUR. CUSTOM SECURITY ATTRIBUTES
+------------------------------------------------------------
+
+This topic appeared in Questions 49, 50, 51 and 72. You missed one and it was tricky, so listen carefully.
+
+Custom security attributes are business specific tags you create in Entra ID. For example, a tag called Project, or a tag called Cost Center. You can then use those tags in access decisions.
+
+Rule number one. They can be assigned only to three object types: users, service principals which means enterprise applications, and managed identities. They can NOT be assigned to groups. Not security groups, not Microsoft 365 groups, not mail enabled groups. No group of any kind.
+
+That single rule answers three questions. Question 49, can Priya Shah assign AttribTag1 to the group Cohort1? False. Groups are not supported at all. Question 51, can Lena Osei assign it to Cohort2? False. Even though Lena has the right role, the object type is not supported. Question 72, which identities can receive Attr1 out of a user, a security group, and a service principal? The user and the service principal only.
+
+Rule number two. The roles. There are four special roles for this feature. Attribute Definition Administrator can create and manage attribute sets and definitions. That means creating the tag itself. Attribute Assignment Administrator can assign tags to objects. Attribute Definition Reader and Attribute Assignment Reader can only read.
+
+Question 50. Derek Nguyen holds Attribute Definition Administrator. Can he assign AttribTag1 to Carlos Vega, a user? You said true. It was false. Because Derek can define tags but not assign them. Assigning needs the Assignment Administrator role.
+
+Also a trap. Global Administrator does not automatically get these permissions. By default, even Global Administrator cannot read, define or assign custom security attributes. You must explicitly give those special roles.
+
+Memory hook. Define is not Assign. Two separate roles. And tags only go on users, service principals and managed identities. Never groups.
+
+------------------------------------------------------------
+CHAPTER FIVE. AZURE POLICY
+------------------------------------------------------------
+
+Question 69. A policy is assigned at the subscription CorpSub1. The definition is called Not allowed resource types, and the blocked type is storage accounts. The resource group rg-finance is excluded.
+
+The answer: you can create storage accounts only in rg-finance.
+
+Here is how to think about it. Azure Policy has three pieces. The definition, which is the rule, like "no storage accounts". The assignment, which is where the rule applies, called the scope. And exclusions, which are children of that scope that are exempt. Everything inside the scope is blocked, except the excluded areas.
+
+So storage accounts are blocked everywhere in CorpSub1, except rg-finance, where the rule does not apply.
+
+Very important difference. Azure Policy controls WHAT can be deployed and how it must look. RBAC controls WHO can do things. One option in that question said "only Owners can create storage accounts". That mixes the two up. Policy never talks about people. It talks about resources.
+
+Remember policy effects too. Deny blocks the deployment. Audit allows it but flags it as non compliant. Append and Modify add or change properties, like adding tags. DeployIfNotExists deploys something extra if it is missing. The "Not allowed resource types" definition uses Deny.
+
+Memory hook. Policy is about resources. RBAC is about people. Exclusion means exempt.
+
+------------------------------------------------------------
+CHAPTER SIX. MOVING RESOURCES BETWEEN RESOURCE GROUPS
+------------------------------------------------------------
+
+Question 77. A web app lives in resource group one, in West Europe. You move it to resource group two. Resource group two has a different policy.
+
+The answer. The App Service plan stays in West Europe, and the policy of the new group, Pol2, applies.
+
+Two facts to take away. Fact one, moving a resource between resource groups does not change its Azure region. A resource group is only a logical folder. Its location only stores metadata. The actual resource stays where it is. Fact two, after the move, the resource sits under the new group, so it inherits what is assigned at the new group, like policy and RBAC. What was assigned on the old group no longer applies.
+
+This connects with the virtual machine maintenance questions, 23 to 28. Moving a VM to another resource group or subscription is a metadata move. It does not change the physical host. To change the physical host, you need Redeploy. We will go deeper in the compute part.
+
+Memory hook. Resource group move changes the folder, not the location. New folder, new inherited rules.
+
+------------------------------------------------------------
+CHAPTER SEVEN. MANAGED IDENTITIES AND KEY VAULT
+------------------------------------------------------------
+
+Question 41. A container app named checkout-app must get a secret from Key Vault. What do you create so the app can authenticate? A managed identity. You said shared access signature, which is wrong.
+
+A managed identity is an identity Azure creates and manages for your resource, so your code never stores a password. There are two kinds. System assigned lives and dies with the resource, one to one. User assigned is a separate resource you can attach to many resources.
+
+The flow is: enable a managed identity on the app, then grant that identity access to the Key Vault. Either through a Key Vault access policy, or, the modern way, with an RBAC role like Key Vault Secrets User.
+
+Why the other options were wrong. SAS tokens belong to Azure Storage, not to Key Vault. A private endpoint is about network access, not about who you are. A service principal works but means you manage secrets yourself, so managed identity is the better answer. A user account is for humans.
+
+Question 42. Which key vaults can supply the secret, when there are three key vaults in different regions and resource groups? All three. No Azure rule stops an app from reading a key vault in another region or another resource group. It is only a best practice to keep them close for latency.
+
+Question 82 is related. You have virtual machines behind an NSG that denies all outbound internet traffic, and you must allow access to Key Vault with least privilege and minimal administration. The answer was a service tag, specifically AzureKeyVault. You said application security group, which is wrong.
+
+Why. A service tag is a named group of IP address ranges for an Azure service, and Microsoft updates it automatically. So you never maintain IP lists. An application security group only groups your own VMs. An IP range works, but you would maintain it by hand, which breaks the minimal administration requirement.
+
+Memory hook. Authenticate from an Azure resource equals managed identity. Allow outbound to an Azure service equals service tag. SAS belongs to storage only.
+
+------------------------------------------------------------
+CHAPTER EIGHT. AZURE DISK ENCRYPTION, ADE
+------------------------------------------------------------
+
+Questions 52 and 53. Azure Disk Encryption encrypts the operating system and data disks of virtual machines. On Windows it uses BitLocker. On Linux it uses DM Crypt. The keys live in Key Vault.
+
+Question 52. Which cmdlet and which key? Set-AzVMDiskEncryptionExtension with Key1. The reason: the key encryption key, the KEK, must be an RSA key. Key1 is RSA 4096. Key2 was an elliptic curve key, which is not supported. And the other cmdlet names in the options do not even exist.
+
+Question 53. Which virtual machines qualify? Node2 and Node3. Here is why the others fail. Node1 uses an ephemeral OS disk, which ADE does not support. Node4 uses Write Accelerator disks, not supported. Node5 uses a dynamic volume, not supported. Node2 is Windows Server 2022 with a basic volume, supported. Node3 is Ubuntu 22.04 LTS with standard SSDs, supported.
+
+Memory hook for the ADE blockers. Remember three words: Ephemeral, Write Accelerator, Dynamic. If a VM has any of these, ADE says no. And the KEK must be RSA, never elliptic curve.
+
+------------------------------------------------------------
+CHAPTER NINE. BONUS GOVERNANCE TOPICS FOR THE EXAM
+------------------------------------------------------------
+
+These did not appear in your set, but the real AZ-104 asks about them constantly, so let me give you the essentials.
+
+Management groups. They sit above subscriptions and let you apply policy and RBAC to many subscriptions at once. Hierarchy: Tenant Root Group, management groups, subscriptions, resource groups, resources. A management group tree can be up to six levels deep, not counting the root and the subscription level. Each management group or subscription has only one parent.
+
+Tags. Name and value pairs for organization and cost tracking, like Environment equals Production. Very important: tags are NOT inherited by default. A tag on a resource group does not automatically appear on its resources. To copy tags down, use Azure Policy with the Modify or Append effect, or the built in policy "Inherit a tag from the resource group".
+
+Resource locks. Two types. CanNotDelete means you can read and change, but not delete. ReadOnly means you can read only, no changes and no deletion. Locks apply to everyone, even the Owner. And locks are inherited by child resources. To remove a locked resource, first remove the lock. You need Owner or User Access Administrator to manage locks.
+
+Subscription transfers, quotas and cost. Cost Management shows spending and budgets. Budgets send alerts but do not stop resources. For quota limits like vCPU per region, you request an increase through Support.
+
+Memory hook for the trio. Policy says what is allowed. Locks stop accidents. Tags organize and track.
+
+------------------------------------------------------------
+PART TWO RAPID REVIEW. SAY IT BACK TO YOURSELF
+------------------------------------------------------------
+
+One. Entra roles manage identities. Azure roles manage resources. Do not mix them.
+Two. Free tier Entra means license users one by one. Group licensing needs P1 or P2.
+Three. SSPR is for All users or a group. Never one single user.
+Four. Group naming policy: office first means prefix plus attribute.
+Five. Custom security attributes go on users, service principals, managed identities. Never on groups.
+Six. Definition Administrator defines. Assignment Administrator assigns. Global Admin has neither by default.
+Seven. Policy controls resources. RBAC controls people. Exclusions are exempt.
+Eight. Moving between resource groups does not change region, and the new group's rules apply.
+Nine. Managed identity for authentication. Service tag for outbound to Azure services.
+Ten. ADE: RSA key for the KEK, and no Ephemeral, Write Accelerator or Dynamic volumes.
+
+That is the end of Part 2. Say "next" and we go into Part 3, Storage, which is a very big part of your exam.

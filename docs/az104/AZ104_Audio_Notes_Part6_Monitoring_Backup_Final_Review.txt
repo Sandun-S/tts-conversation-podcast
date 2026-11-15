@@ -1,0 +1,168 @@
+AZ-104 AUDIO NOTES. PART 6 OF 6. THE FINAL PART.
+MONITORING, BACKUP, AND YOUR FULL MISTAKE REVIEW.
+
+Alright bro, final part. First we cover monitoring and backup, then we do something very valuable: we go through every question you got wrong, find the patterns, and build a strategy for exam day.
+
+The chapters in this part. Chapter one, Azure Monitor basics. Chapter two, Data Collection Rules and XPath. Chapter three, alerts, action groups and the ITSM connector. Chapter four, Azure Backup and the two vault types. Chapter five, backup bonus topics. Chapter six, your score and the pattern of your mistakes. Chapter seven, the twenty questions you missed, one by one. Chapter eight, exam day strategy and final rapid fire.
+
+------------------------------------------------------------
+CHAPTER ONE. AZURE MONITOR BASICS
+------------------------------------------------------------
+
+Azure Monitor is the umbrella service for collecting, analyzing and acting on telemetry. It handles two main kinds of data.
+
+Metrics are numbers sampled over time, like CPU percentage or available memory. They're lightweight, near real time, and stored for 93 days.
+
+Logs are rich records, like event logs, activity logs and diagnostic logs. They're stored in a Log Analytics workspace, and you query them using Kusto Query Language, KQL.
+
+The Activity log is a subscription level log that records management operations, like who created or deleted a resource. It answers the question, who did what, and when, at the control plane.
+
+Diagnostic settings are how you send a resource's platform logs and metrics to a destination: a Log Analytics workspace, a storage account for archive, or an event hub for streaming.
+
+For virtual machines, the Azure Monitor Agent, AMA, collects data from inside the guest operating system, like event logs, performance counters and syslog. Host level metrics, like CPU, are available without an agent. Guest level data, like memory inside the OS, needs the agent.
+
+Memory hook. Metrics are numbers over time. Logs are records queried with KQL. Inside the guest needs the agent.
+
+------------------------------------------------------------
+CHAPTER TWO. DATA COLLECTION RULES AND XPATH
+------------------------------------------------------------
+
+Question 58. You must collect only the Windows system events with Event ID 4648, from two specific servers. Which query language goes inside the Data Collection Rule? XPath. You answered correctly.
+
+A Data Collection Rule, DCR, defines three things: what data to collect, how to transform it, and where to send it. You attach the rule to machines through an association.
+
+The logic is about timing. XPath filters at collection time, inside the DCR, deciding what gets ingested. KQL runs later, after the data is in Log Analytics, to analyze it. WQL belongs to WMI and T-SQL belongs to databases, so neither applies.
+
+Memory hook. Filter on the way in equals XPath. Analyze after it's stored equals KQL.
+
+------------------------------------------------------------
+CHAPTER THREE. ALERTS, ACTION GROUPS AND THE ITSM CONNECTOR
+------------------------------------------------------------
+
+An alert has three parts. The alert rule, which defines the condition and scope. The action group, which defines what happens when it fires. And the alert itself, the fired instance.
+
+Alert types. Metric alerts watch numbers, like CPU over 80 percent. Log alerts run a KQL query on a schedule. Activity log alerts fire on management events, like a VM being deleted. Smart detection and service health alerts also exist.
+
+Action groups are reusable lists of notifications and actions. Notifications include email, SMS, push and voice. Actions include Automation runbooks, Azure Functions, Logic Apps, webhooks, and ITSM connections.
+
+Question 81. You have on premises System Center Service Manager and you want an alert when a VM's available memory drops under ten percent. What do you do first? Deploy the IT Service Management Connector, ITSM. You answered correctly.
+
+The reasoning: Azure alerts can create work items, like incidents, inside ITSM tools such as Service Manager, but only if the connector is deployed and connected first. An automation runbook, a function app, or a plain notification doesn't give the integration.
+
+Memory hook. Alerts into an ITSM tool like Service Manager equals ITSM Connector first, then action group.
+
+------------------------------------------------------------
+CHAPTER FOUR. AZURE BACKUP AND THE TWO VAULT TYPES
+------------------------------------------------------------
+
+Azure Backup uses two kinds of vault, and the exam tests which workload goes where.
+
+The Recovery Services vault is the older, broader vault. It backs up: Azure virtual machines, Azure Files shares, SQL Server and SAP HANA running inside VMs, on premises machines through the MARS agent, and on premises workloads through Azure Backup Server or System Center DPM. It also hosts Azure Site Recovery for disaster recovery.
+
+The Backup vault is the newer vault. It backs up: Azure Disks, Azure Blobs, Azure Database for PostgreSQL, and Azure Kubernetes Service. Think of it as the vault for newer data sources.
+
+Questions 36 and 37. You have a Backup vault and a Recovery Services vault. Which resources can the Backup vault protect? Disk01, the managed disk. Which can the Recovery Services vault protect? VM01, the virtual machine.
+
+Why the web app and the SQL database don't belong. An App Service web app has its own built in backup feature. An Azure SQL Database has automated backups with point in time restore. Neither uses these vaults.
+
+Memory hook. Recovery Services vault equals VMs, Files, SQL in VMs, and on premises. Backup vault equals Disks, Blobs, PostgreSQL, AKS. VM goes with Recovery Services. Disk and Blob go with Backup vault.
+
+------------------------------------------------------------
+CHAPTER FIVE. BACKUP BONUS TOPICS
+------------------------------------------------------------
+
+Backup frequency recap from Part 3. Blob vaulted backup is daily or weekly. Azure Files backup can be hourly, up to 24 snapshots a day. VM backup is typically once a day.
+
+Backup policy. Defines schedule and retention. Retention can be daily, weekly, monthly and yearly points.
+
+Soft delete. Backups are kept for 14 days after deletion by default, so you can recover from accidental or malicious deletion. Enhanced soft delete and immutability can add further protection.
+
+Vault redundancy. You pick LRS, ZRS or GRS for the vault's backup storage before you protect anything. GRS with cross region restore lets you restore in the paired region.
+
+Restore options for a VM. Create a new VM, restore disks, replace existing disks, or restore individual files. Individual file recovery works by mounting the recovery point as a drive.
+
+Azure Site Recovery. Replicates VMs to another region for disaster recovery, so you can failover. It's different from backup. Backup protects against data loss and corruption. Site Recovery protects against whole site outage. Backup is about restore points. Site Recovery is about continuity.
+
+------------------------------------------------------------
+CHAPTER SIX. YOUR SCORE AND YOUR PATTERN
+------------------------------------------------------------
+
+You got 70 questions correct out of 90, which is around 78 percent. That's a solid base. The real exam pass mark is 700 out of 1000, and the scoring isn't a simple percentage, so treat it as a good sign rather than a guarantee. And the best news is that your 20 mistakes fall into only a few patterns. Fix the patterns and most of them vanish.
+
+Pattern one, role scope versus role content. You often checked one but not the other. Questions 10, 34, 65, 73 and 19 fall here. Always ask two things: does the role's scope include this resource, and does the role's actions include this operation.
+
+Pattern two, picking a feature that sounds related but isn't the fix. Questions 17, 41, 75 and 82 fit here. A network feature doesn't fix authentication. A load balancer doesn't choose a point of presence. An ASG isn't a service tag.
+
+Pattern three, exact numbers and limits. Questions 54, 55, 48 and 12 fit here. Count carefully, and learn the specific limits.
+
+Pattern four, the case study details. Questions 49, 50, 57, 60 and 62 depend on exact facts: object types, role names, formats, scopes, operating systems.
+
+Pattern five, over thinking distractors. Questions 5 and 85 were solved by one simple rule each, and extra details, like public IPs or Linux, were noise.
+
+------------------------------------------------------------
+CHAPTER SEVEN. YOUR TWENTY MISSED QUESTIONS, ONE BY ONE
+------------------------------------------------------------
+
+Question 5. A record for coreapp1 in the public zone with a public IP. Answer: false. Only private zones auto register, and only with private IPs.
+
+Question 10. Taylor managing disks and snapshots on cacheVM. Answer: false. VM Contributor handles VMs and disks, but not snapshots.
+
+Question 12. The inventory prefix. Answer: images slash finance. Container name first.
+
+Question 17. AcrPull given to ACR Tasks Network. Answer: no. The role must go to the identity that actually pulls.
+
+Question 19. Storage Account Encryption Scope Contributor to manage keys. Answer: no. It has nothing to do with keys. Use Key Operator or Storage Account Contributor.
+
+Question 34. Riley, with a role on one storage account, creating a new storage account in the resource group. Answer: false. Creating a new resource needs the role at the resource group.
+
+Question 41. Authenticating a container app to Key Vault. Answer: managed identity. A SAS token is a storage concept.
+
+Question 48. Backup frequency for the file share. Answer: every hour. Azure Files allows up to 24 snapshots a day.
+
+Question 49. Assigning a custom security attribute to a group. Answer: false. Groups can't hold them.
+
+Question 50. Derek with Attribute Definition Administrator assigning a tag. Answer: false. He defines, he can't assign.
+
+Question 54. Additional stored access policies on a container with three. Answer: two. Max is five.
+
+Question 55. Additional immutable policies where a legal hold exists. Answer: one, per the exam. There are two policy kinds, and one is used.
+
+Question 57. Which certificates App Service accepts. Answer: the PKCS 12 ones only, TlsCert1 and TlsCert2.
+
+Question 60. Where to assign the roles to Carlos. Answer: NetVnet1 and corezone1 dot com directly, for least privilege.
+
+Question 62. Which services run a Windows image. Answer: App Service or Container Instances. Container Apps is Linux only.
+
+Question 65. Priya modifying the NIC's DNS with Contributor on the NSG. Answer: false. Association isn't inheritance.
+
+Question 73. Priya viewing storage data. Answer: Reader and Data Access, per the exam. A management role like Storage Account Contributor is not about reading data.
+
+Question 75. Closest Microsoft point of presence. Answer: routing preference, not load balancing.
+
+Question 82. Allowing outbound to Key Vault. Answer: service tag AzureKeyVault, not an ASG.
+
+Question 85. VM C using its own NIC DNS server. Answer: true. NIC beats VNet. Operating system is irrelevant.
+
+------------------------------------------------------------
+CHAPTER EIGHT. EXAM DAY STRATEGY AND FINAL RAPID FIRE
+------------------------------------------------------------
+
+Strategy. First, read the last line of the question first, so you know what's actually being asked. Second, underline keywords: least privilege, minimal administration, immediately, first step, only. Third, for scope questions, draw the hierarchy quickly in your head: management group, subscription, resource group, resource. Fourth, for true or false sets, treat each statement alone, because the same scenario can flip between statements. Fifth, for case studies, quickly scan the requirements and the technical details before answering, since exact facts decide the answer. Sixth, eliminate wrong answers by the word "only" and by features that belong to a different service. Seventh, don't spend more than two minutes on a question. Flag it and move on. Eighth, in questions with "does this solution meet the goal", remember that the same scenario repeats with different solutions, and usually only one works.
+
+Final rapid fire. Say these out loud.
+
+RBAC. Who, what, where. Additive. Control plane is not data plane. Association is not inheritance. Role assignment needs Owner, User Access Administrator, or RBAC Administrator.
+
+Entra. Free tier means no group licensing. SSPR is for groups or all. Custom attributes go on users, service principals and managed identities.
+
+Policy. Policy controls resources. RBAC controls people. Exclusions are exempt.
+
+Storage. Another region equals geo. Five stored access policies. Encryption scopes are for blobs. Routing preference sets the entry point.
+
+Networking. NIC DNS beats VNet DNS. Private zone auto registration uses private IPs. UDR with virtual appliance forces traffic through a firewall. Service tag for Azure services.
+
+Compute. Redeploy moves the host. Image pull failing means credentials. Container Apps is Linux only. App Service wants PFX.
+
+Monitoring and backup. XPath filters at collection. ITSM connector first for Service Manager. Recovery Services vault for VMs and Files. Backup vault for Disks and Blobs.
+
+That's the end of all six parts, bro. You did well. You have a strong base, and your mistakes are very fixable. Listen to these once more over the next days, especially Chapter Seven of this part, and you'll be in great shape for AZ-104. Good luck with the exam.

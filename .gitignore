@@ -1,0 +1,18 @@
+# Audio files
+*.mp3
+data/audio/tmp/
+
+# Model weights & cache (large binary files)
+models/
+
+# Python & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+
+# OS & editor files
+.DS_Store
+Thumbs.db

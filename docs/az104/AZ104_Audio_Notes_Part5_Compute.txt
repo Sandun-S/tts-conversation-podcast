@@ -1,0 +1,153 @@
+AZ-104 AUDIO NOTES. PART 5 OF 6.
+AZURE COMPUTE: VIRTUAL MACHINES, CONTAINERS AND APP SERVICE.
+
+Hey bro, welcome to Part 5. Compute. This is where Azure runs your actual workloads, and your questions here were about virtual machine maintenance, container registries, container instances and App Service. Several of them were trick questions, so listen for the reasoning, not just the answer.
+
+The chapters in this part. Chapter one, virtual machine maintenance and the Redeploy trick. Chapter two, Desired State Configuration. Chapter three, Azure Container Registry and how to authenticate to it. Chapter four, pushing images with the Azure CLI and Docker. Chapter five, Azure Container Instances and container groups. Chapter six, which container service supports Windows and which supports Linux. Chapter seven, App Service: deployment, certificates and plans. Chapter eight, bonus compute topics: availability, scale sets, ARM templates and disks.
+
+------------------------------------------------------------
+CHAPTER ONE. VIRTUAL MACHINE MAINTENANCE AND REDEPLOY
+------------------------------------------------------------
+
+Questions 23 to 28. The same scenario repeated with different proposed solutions. A VM called ShireenVM will be hit by planned platform maintenance, and you must move it to another physical host immediately.
+
+The only solution that worked was Redeploy, from the Redeploy and reapply blade. Every other option was a trap.
+
+Why Redeploy works. When you redeploy, Azure shuts the VM down, moves it to a new physical host inside the same region, and powers it back on. Your OS disk and data disks are kept, so you don't lose data. Be aware of three side effects. The VM restarts, so there's brief downtime. Any data on the temporary disk is lost, because that disk is local to the old host. And dynamic public IP addresses may change, while static ones stay.
+
+Why the traps fail. Moving a VM to another resource group or another subscription is only a metadata change inside Azure Resource Manager. The VM stays on the same physical server. The Updates blade options, like One time update or Enable, deal with guest operating system patching or maintenance configurations, not host placement. They don't relocate the VM.
+
+Memory hook. Change the physical host equals Redeploy. Moving resource groups or subscriptions equals only paperwork.
+
+Related idea. There's also a Reapply option beside Redeploy. Reapply re-applies the VM's configuration, used when the VM is stuck in a failed provisioning state. Different purpose, no host move.
+
+------------------------------------------------------------
+CHAPTER TWO. DESIRED STATE CONFIGURATION
+------------------------------------------------------------
+
+Question 71. Before you enable Desired State Configuration on a VM, the first step is to power it on. In the exhibit, the VM was stopped and deallocated. Extensions, including the DSC extension, only run on a running VM. Nothing else can happen until it's started, so assigning DNS names, connecting, or taking snapshots are not the first step.
+
+Desired State Configuration, or DSC, lets you declare how a machine should be configured, and the system keeps it that way. In Azure, it's used through Azure Automation State Configuration or the DSC VM extension.
+
+Memory hook. Extensions need a running VM. Power on first.
+
+------------------------------------------------------------
+CHAPTER THREE. AZURE CONTAINER REGISTRY AND AUTHENTICATION
+------------------------------------------------------------
+
+Azure Container Registry, ACR, is a private store for your container images. It's like Docker Hub, but inside Azure and under your control.
+
+Questions 15 to 18 asked: a container instance deployment fails to pull an image from corpRegistry. Which solution fixes it? Four proposals.
+
+One. Configure a private endpoint. Answer: No. A private endpoint only changes how you reach the registry over the network. It doesn't give the container instance permission to pull.
+
+Two. Enable the dedicated data endpoint. Answer: No. This separates data traffic to a dedicated endpoint, mostly for firewall rules. Not a permissions fix.
+
+Three. Assign AcrPull to ACR Tasks Network. Answer: No. You said yes, so listen. AcrPull is the right kind of role, but it must go to the identity that actually pulls the image, such as the container instance's managed identity or a service principal. A random, unrelated identity does nothing for the deployment.
+
+Four. Enable the Admin user on the registry. Answer: Yes. The admin account provides a username and password that the container instance can use to authenticate and pull.
+
+Now the lesson. The deployment error is an authentication problem, so the answer must give the container instance credentials or an identity with pull rights. Network features don't do that.
+
+There are three ways to authenticate to ACR. First, the Admin user, a single shared username and password. Easy, but not recommended for production because it's a shared secret. Second, a service principal with a role like AcrPull. Third, a managed identity with AcrPull, which is the best practice because there's no secret to manage.
+
+ACR roles to know. AcrPull can only pull. AcrPush can pull and push. AcrDelete can delete images. Owner, Contributor and Reader work at the management level.
+
+Memory hook. Pull failing with an error? Think credentials. Admin user, service principal, or managed identity with AcrPull. Networking features don't fix permissions.
+
+------------------------------------------------------------
+CHAPTER FOUR. CREATING A REGISTRY AND PUSHING AN IMAGE
+------------------------------------------------------------
+
+Questions 29 and 30. You've built an image on your workstation called invoiceservice dash img, and you want to create a registry and push the image.
+
+To create the registry, the command is az acr create. Not az acr build, which builds and pushes an image using ACR tasks. Not az container create, which makes a container instance. Not az acr login, which only authenticates.
+
+To upload the image, the command is docker push. Not docker pull, which downloads. Not docker tag, which only renames.
+
+The full sequence in your head: first az acr create to make the registry. Then az acr login to authenticate Docker against it. Then docker tag to name the local image with the registry's login server prefix, like corpregistry dot azurecr dot io slash invoiceservice dash img. Then docker push to upload.
+
+Memory hook. Create registry equals az acr create. Authenticate equals az acr login. Name the image equals docker tag. Upload equals docker push.
+
+------------------------------------------------------------
+CHAPTER FIVE. AZURE CONTAINER INSTANCES AND CONTAINER GROUPS
+------------------------------------------------------------
+
+Azure Container Instances, or ACI, runs containers without managing any servers. It's good for simple, short, or burst workloads.
+
+A container group is a set of containers that run together on the same host, sharing a network and storage. It's similar to a pod in Kubernetes. The group's total resources are the sum of the requests of all containers.
+
+Question 31. The group has two containers. The API container requests 2 CPUs, limit 2. The worker container requests 3 CPUs, limit 4. How do you make sure the worker doesn't harm the API? The exam's answer: remove the resource limits.
+
+The logic the exam uses. A request is the amount of CPU guaranteed to the container, and a limit is the maximum it can use. When you don't set a limit, the container's maximum equals its request. So without limits, the worker is capped at 3 CPUs, and the API stays at 2. The worker can no longer burst up to 4 and steal CPU from the API.
+
+Why the other options fail. Raising the API's limit makes contention worse. Raising the worker's limit to six exceeds what the group has. The group only has 5 CPUs from the combined requests. Lowering the worker's limit to 2 is invalid because a limit cannot be lower than the request, which is 3. Moving the worker to another group is a bigger architecture change that isn't required.
+
+Memory hook. Limit cannot be below request. No limit means max equals request. The group's total equals the sum of requests.
+
+------------------------------------------------------------
+CHAPTER SIX. WHICH CONTAINER SERVICE FOR WHICH OPERATING SYSTEM
+------------------------------------------------------------
+
+Questions 62 and 63.
+
+A Windows based image can run on App Service, and on Azure Container Instances. It cannot run on Azure Container Apps. You picked Container Apps plus ACI, which was wrong because Container Apps only runs Linux containers.
+
+A Linux based image can run on all three: App Service, Azure Container Apps and Azure Container Instances.
+
+Memory hook. Container Apps equals Linux only. Windows containers equals App Service or ACI. Linux runs everywhere.
+
+Quick comparison of the services. ACI is the simplest, single containers or small groups, no orchestration. Container Apps is serverless containers built for microservices, with autoscaling including scale to zero, running on Kubernetes behind the scenes. App Service is a platform for web apps and APIs, which can also run custom containers. Azure Kubernetes Service, AKS, is full Kubernetes when you need complete control.
+
+------------------------------------------------------------
+CHAPTER SEVEN. APP SERVICE
+------------------------------------------------------------
+
+An App Service plan defines the compute: region, operating system, size and pricing tier. Multiple web apps can share one plan, and they share its compute. The plan decides features like scaling, deployment slots and custom domains.
+
+Question 1 revisited. Developers deploy with Web Deploy and authenticate with Entra ID. The answer was Website Contributor. FTPS credentials are local credentials, not Entra identities.
+
+Question 57. Importing a certificate from Key Vault into App Service. Which certificate format works? PKCS 12, also called PFX. TlsCert1 and TlsCert2 were PKCS 12, so they worked. The PEM ones, TlsCert3 and TlsCert4, do not import directly. You selected all four, so remember: App Service imports PFX, meaning PKCS 12 with the private key. The certificate must also contain the private key, be exportable, and use a supported key size.
+
+Deployment slots. Available in Standard tier and above. A slot is a live copy of your app with its own hostname, like staging. You deploy to the slot, test, then swap into production with no downtime. Slots share the plan's compute.
+
+Scaling. Scale up means a bigger plan with more CPU and memory. Scale out means more instances. Autoscale rules can add instances based on metrics like CPU or on a schedule.
+
+Custom domains and TLS. You add a custom domain by verifying ownership through DNS records, then bind a certificate to it. App Service managed certificates are free for basic scenarios.
+
+Backup. App Service backup is built in and lives within the app. It needs a storage account and a tier that supports it.
+
+------------------------------------------------------------
+CHAPTER EIGHT. BONUS COMPUTE TOPICS
+------------------------------------------------------------
+
+Availability. Availability sets protect against hardware failure inside a single datacenter using fault domains and update domains. Availability zones place VMs in physically separate datacenters in the same region, for higher protection. Zones beat availability sets, and you can't use both for the same VM.
+
+Virtual Machine Scale Sets. Create and manage a group of identical VMs that scale automatically. Flexible orchestration is the modern mode.
+
+ARM templates and Bicep. Declarative infrastructure as code. An ARM template is JSON. Bicep is a cleaner language that compiles to ARM. You can deploy a template to a resource group with the portal, the CLI, or PowerShell. Question 23 mentioned a VM deployed from a custom template, but that detail didn't change the answer. Redeploy was still the fix.
+
+Resizing a VM. You can change the size from the VM's Size blade. If the new size is on the same hardware cluster, it only restarts. If not, you must deallocate first.
+
+Disks. Managed disks are the default. Types: Standard HDD, Standard SSD, Premium SSD, and Ultra Disk. Encryption at rest uses platform managed keys by default. Azure Disk Encryption was covered in Part 2.
+
+Connecting to VMs. RDP for Windows on port 3389, SSH for Linux on port 22. Bastion is safer because it avoids public IPs. Remember the Virtual Machine User Login and Administrator Login roles from Part 1, which allow Entra ID sign in.
+
+Azure Container Apps and AKS. Container Apps is for serverless microservices. AKS is for full Kubernetes control.
+
+------------------------------------------------------------
+PART FIVE RAPID REVIEW
+------------------------------------------------------------
+
+One. Change the physical host: Redeploy. Not moving subscription, not moving resource group, not Updates.
+Two. Redeploy loses the temporary disk, keeps OS and data disks.
+Three. Extensions like DSC need a running VM.
+Four. Image pull failing is a credentials problem. Fix with admin user, service principal, or managed identity plus AcrPull. Networking doesn't fix it.
+Five. az acr create makes the registry. docker push uploads.
+Six. In a container group, a limit cannot be lower than the request, and no limit means max equals request.
+Seven. Windows containers: App Service or ACI. Container Apps is Linux only.
+Eight. App Service imports PFX, PKCS 12 certificates, not PEM.
+Nine. Deployment slots need Standard tier or higher.
+Ten. Zones are stronger than availability sets.
+
+That is Part 5. Say "next" for the final Part 6: monitoring, backup, and a full exam strategy review with every mistake you made.

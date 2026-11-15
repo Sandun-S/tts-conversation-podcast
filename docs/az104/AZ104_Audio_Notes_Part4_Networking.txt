@@ -1,0 +1,177 @@
+AZ-104 AUDIO NOTES. PART 4 OF 6.
+AZURE NETWORKING.
+
+Hey bro, welcome to Part 4. Networking is where people lose marks because the questions are full of small traps. We'll go slowly, and I'll explain the logic so you can reason through any variation.
+
+The chapters in this part. Chapter one, virtual networks and subnets. Chapter two, DNS: public zones, private zones and auto registration. Chapter three, how a VM decides which DNS server to use. Chapter four, routing: system routes, user defined routes and next hop types. Chapter five, network security groups, application security groups and service tags. Chapter six, service endpoints and service endpoint policies. Chapter seven, private endpoints and private DNS links. Chapter eight, bonus topics: peering, VPN, Bastion, load balancing options and Network Watcher.
+
+------------------------------------------------------------
+CHAPTER ONE. VIRTUAL NETWORKS AND SUBNETS
+------------------------------------------------------------
+
+A virtual network, or VNet, is your private network in Azure. It lives in one region and one subscription. You give it an address space, like 10.1.0.0 slash 16, then cut it into subnets, like 10.1.0.0 slash 24.
+
+Key facts. Azure reserves five IP addresses in every subnet: the network address, the broadcast address, the default gateway, and two for Azure DNS. So a slash 24 gives 251 usable addresses, not 256.
+
+By default, VMs in the same VNet can talk to each other, even across different subnets. And by default, VMs can reach the internet outbound. These defaults are controlled later with NSGs and routes.
+
+Remember from Part 1: to create a subnet you need a network role like Network Contributor, or Owner. Entra roles don't matter.
+
+------------------------------------------------------------
+CHAPTER TWO. DNS: PUBLIC ZONES, PRIVATE ZONES AND AUTO REGISTRATION
+------------------------------------------------------------
+
+Azure DNS hosts two kinds of zones.
+
+A public DNS zone answers queries from anyone on the internet. Example: northwind dot com. You use it for your public website names.
+
+A private DNS zone answers queries only from virtual networks that you link to it. Example: coldharbor dot net. You use it for internal names like app one dot coldharbor dot net, so VMs find each other by name instead of IP.
+
+Now the star feature of questions 5, 6 and 7: auto registration.
+
+To use a private zone with VMs, you create a virtual network link. When creating the link, you can enable auto registration. When it's on, Azure automatically creates an A record in the private zone for every VM in that VNet, pointing to the VM's PRIVATE IP address. When a VM is deleted, the record is removed. When the VM's IP changes, the record updates.
+
+Question 5. Is the A record for coreapp one created in northwind dot com and resolving to the public IP 52 dot 183 dot 40 dot 10? You said true. It was false. Because northwind dot com is a PUBLIC zone. Auto registration only exists for PRIVATE zones. Azure never creates records in a public zone automatically, and never from a public IP.
+
+Question 6. Is the A record created in coldharbor dot net resolving to 10 dot 1 dot 0 dot 4? True. Private zone, linked with auto registration, and the private IP is what gets registered.
+
+Question 7. Same logic for coreapp two with 10 dot 1 dot 0 dot 5. True. And the exam also pointed out that the operating system, whether Windows or Linux, and any DNS suffix configured inside the OS, do not affect Azure's auto registration. It's done by the platform, not by the VM.
+
+The Owner role assigned on the public zone is irrelevant to this, because RBAC doesn't create DNS records.
+
+Rules for auto registration. One private zone can have many linked VNets, but only a limited number with registration enabled. And a VNet can be linked with registration to only one private zone. Links without registration are called resolution links. They allow name lookups but don't create records.
+
+Memory hook. Private zone plus registration link equals automatic records with PRIVATE IPs. Public zone equals manual records only.
+
+------------------------------------------------------------
+CHAPTER THREE. WHICH DNS SERVER DOES A VM USE?
+------------------------------------------------------------
+
+Questions 83, 84 and 85. This is a hierarchy question. Think of two levels.
+
+Level one, the VNet DNS setting. You can leave it as default, meaning Azure provided DNS, or set custom DNS servers for the whole VNet.
+
+Level two, the network interface DNS setting. A NIC can have its own DNS servers.
+
+The rule: the NIC setting wins over the VNet setting. If the NIC has nothing configured, it inherits from the VNet. If the NIC has its own DNS server, that overrides the VNet.
+
+Apply it. VM A has no DNS on its NIC, so it inherits the VNet's server 193 dot 77 dot 134 dot 10. Question 83, true.
+
+VM B has its own NIC DNS 192 dot 168 dot 10 dot 15. Does it use 193 dot 77 dot 134 dot 10? False. Its NIC setting overrides the VNet. Question 84.
+
+VM C, running Red Hat Linux, also has NIC DNS 192 dot 168 dot 10 dot 15. Does it use that server? True. You said false, which was wrong. Don't let the operating system distract you. Linux or Windows doesn't change how Azure assigns DNS. The NIC setting applies.
+
+One more technical detail. DNS changes on a VNet require VMs to renew their lease or restart before they pick up the new setting.
+
+Memory hook. NIC beats VNet. No NIC setting means inherit from the VNet. Operating system is a distraction.
+
+------------------------------------------------------------
+CHAPTER FOUR. ROUTING
+------------------------------------------------------------
+
+Azure creates system routes automatically so traffic flows: within the VNet, between peered VNets, and out to the internet. You can override them with a route table containing user defined routes, called UDRs.
+
+A route has three parts: an address prefix, which is the destination, a next hop type, and for one type, a next hop IP address.
+
+The five next hop types to memorize. Virtual network gateway, for sending traffic to a VPN or ExpressRoute gateway. Virtual network, which sends traffic within the VNet. Internet, which sends traffic to the internet. Virtual appliance, which sends traffic to a network virtual appliance such as a firewall, and this is the ONLY type that needs you to type an IP address. And None, which drops the traffic.
+
+Question 43. Which next hop type needs an IP address? Virtual appliance.
+
+Question 40. Spoke east and spoke west are peered, and all traffic from east to west must pass through the firewall appliance. The answer: a route table with custom routes. You create a route whose destination is the west address space, and whose next hop is the virtual appliance with the firewall's IP. Then you associate the route table to the subnets in the east spoke.
+
+Why not the others. A local network gateway represents your on premises network for VPN. A service endpoint is for Azure PaaS services. IP reservations are for fixed addresses. An NSG with a deny rule only allows or blocks. It cannot redirect.
+
+Two practical notes the exam likes. First, route tables are associated with subnets, not with VNets as a whole. Second, a firewall appliance VM needs IP forwarding enabled on its network interface, or it will drop transit traffic. Also, for return traffic to work, you typically need a matching route in the other spoke too.
+
+Memory hook. Force traffic through a firewall equals user defined route with next hop virtual appliance. NSG blocks. Route redirects.
+
+------------------------------------------------------------
+CHAPTER FIVE. NSGs, ASGs AND SERVICE TAGS
+------------------------------------------------------------
+
+A network security group, NSG, is a list of allow and deny rules that filter traffic. Each rule has a priority from 100 to 4096. Lower numbers are processed first. Once a rule matches, processing stops. Each rule defines source, destination, port, protocol and action.
+
+You can attach an NSG to a subnet or to a network interface, or both. When both, inbound traffic is checked by the subnet NSG first and then the NIC NSG. For outbound traffic it's the reverse, NIC first, then subnet. Traffic must be allowed by both.
+
+Default rules exist at the bottom, with priority 65000 and above, and you can't delete them. Inbound: allow VNet to VNet, allow Azure load balancer, deny everything else. Outbound: allow VNet, allow internet, deny everything else.
+
+An application security group, ASG, lets you group VMs by role, like web servers, and use that group as source or destination in NSG rules, instead of IP addresses. The VMs in an ASG must be in the same VNet.
+
+A service tag is a named group of IP ranges for an Azure service, like Storage, Sql, AzureKeyVault or Internet. Microsoft keeps them up to date automatically.
+
+Question 82 again. Allow VMs to reach Key Vault while blocking other internet, with least privilege and low admin work. Use an outbound rule with destination type service tag, value AzureKeyVault. You said ASG, which only groups your own VMs.
+
+Another thing from Part 1: In Question 66, Priya had Contributor on the NSG and could add a rule that blocks a range of source IPs. Rules are written inside the NSG, so Contributor on the NSG is enough.
+
+Memory hook. Group my own VMs equals ASG. Reach an Azure service by name equals service tag. IP list that changes equals bad idea.
+
+------------------------------------------------------------
+CHAPTER SIX. SERVICE ENDPOINTS AND SERVICE ENDPOINT POLICIES
+------------------------------------------------------------
+
+A service endpoint extends your subnet's identity to an Azure PaaS service, like Storage. Traffic from that subnet to Storage goes over Microsoft's backbone, and the storage firewall can then allow just that subnet. The storage still has its public IP, though.
+
+A service endpoint policy adds filtering on top. It lets you specify which storage accounts the subnet is allowed to reach through the endpoint. Without a policy, a subnet with a Microsoft dot Storage endpoint can reach any storage account in Azure that accepts it.
+
+Rules for a policy. First, the policy must be in the same region as the subnet it's applied to. Second, the subnet must already have the matching service endpoint, here Microsoft dot Storage. The policy itself can list storage accounts from different regions.
+
+Apply it to Questions 86, 87 and 88.
+
+Question 86. Can StoragePolicy one, created in South Central US, apply to Subnet C? Subnet C is in VNet US, in South Central US, and has the Microsoft dot Storage endpoint. Both conditions met. True.
+
+Question 87. Is it true that only storagewest01 and storageus01 can be reached from VNet Asia? False. Subnet B has the storage endpoint and no policy is applied, so there's no filtering. It can reach all storage accounts, including the Asia one.
+
+Question 88. Is it true that only storageus01 can be reached from VNet US? False. Subnet C's policy allows every storage account in the subscription, and Subnet D has no endpoint at all, so it simply uses normal public access paths. So nothing limits it to a single account.
+
+Memory hook. Policy needs: same region, and the endpoint already on the subnet. No policy means no filtering.
+
+------------------------------------------------------------
+CHAPTER SEVEN. PRIVATE ENDPOINTS AND PRIVATE DNS LINKS
+------------------------------------------------------------
+
+A private endpoint gives a PaaS service a private IP address inside your VNet. The service becomes reachable like any internal VM, and you can disable its public access completely. This is stronger than a service endpoint.
+
+Private endpoints need DNS: the service's normal name, like mystorage dot blob dot core dot windows dot net, must resolve to the private IP. That's done with a private DNS zone, like privatelink dot blob dot core dot windows dot net, linked to your VNet.
+
+This ties to Questions 59 and 60. To link the private DNS zone corezone1 dot com to the virtual network NetVnet1, Carlos needs Private DNS Zone Contributor on the zone, and Network Contributor on the VNet. Assigned at those two resources, not the resource groups, to meet least privilege.
+
+Also from the container registry questions 15 and 16: a private endpoint and a dedicated data endpoint are network features. They don't solve an authentication or permission error when pulling an image. We'll cover that in Part 5.
+
+Memory hook. Private endpoint equals a private IP for the service. It needs DNS to work. Service endpoint only tags your subnet.
+
+------------------------------------------------------------
+CHAPTER EIGHT. BONUS NETWORKING TOPICS FOR THE EXAM
+------------------------------------------------------------
+
+VNet peering. Connects two VNets so they talk over Microsoft's backbone, privately and with low latency. Works across regions too, which is called global peering. Peering is not transitive. If A peers with B, and B peers with C, then A cannot reach C unless you peer them directly, or route through an appliance or use a hub design. Address spaces must not overlap. Peering has to be created on both sides.
+
+Gateway transit. In a hub and spoke design, spokes can use the hub's VPN gateway by enabling "allow gateway transit" on the hub side and "use remote gateways" on the spoke side.
+
+VPN Gateway. Site to site VPN connects your on premises network to Azure over the internet. A local network gateway represents your on premises side. Point to site connects individual client machines. ExpressRoute is a private dedicated connection, not over the internet.
+
+Azure Bastion. Gives you RDP and SSH to VMs directly from the portal over TLS, with no public IP on the VM. It needs a dedicated subnet named exactly AzureBastionSubnet, minimum slash 26.
+
+Load balancing options. Choose by layer and scope. Azure Load Balancer works at layer 4, TCP and UDP, within a region. Application Gateway works at layer 7, HTTP and HTTPS, within a region, and offers web application firewall and URL routing. Traffic Manager is DNS based and global, it routes by DNS responses. Front Door is a global layer 7 service with acceleration and web application firewall.
+
+Public IP addresses. Basic and Standard SKUs. Standard is static only, and secure by default, which means closed to inbound traffic until an NSG allows it.
+
+NAT Gateway. Gives subnets outbound internet connectivity using static public IPs.
+
+Network Watcher. Your troubleshooting toolbox. IP flow verify tests whether an NSG allows a specific packet. Next hop shows the route a packet takes. Connection troubleshoot tests connectivity. Topology draws your network. NSG flow logs record traffic.
+
+------------------------------------------------------------
+PART FOUR RAPID REVIEW
+------------------------------------------------------------
+
+One. Auto registration exists only for private DNS zones, and registers private IPs.
+Two. VM DNS: NIC setting beats VNet setting. No NIC setting means inherit the VNet.
+Three. Operating system never changes DNS logic.
+Four. Next hop type virtual appliance is the only one that needs an IP.
+Five. To force traffic through a firewall, use a user defined route, not an NSG.
+Six. Service tag for Azure services. ASG for your own VMs.
+Seven. Service endpoint policy: same region as the subnet, and subnet must have the endpoint. No policy means no filtering.
+Eight. Private endpoint gives a private IP and needs private DNS.
+Nine. Peering is not transitive.
+Ten. Layer 4 regional is Load Balancer. Layer 7 regional is Application Gateway. Global DNS based is Traffic Manager. Global layer 7 is Front Door.
+
+That is Part 4. Say "next" for Part 5, Compute: virtual machines, containers and App Service.

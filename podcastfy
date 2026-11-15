@@ -1,0 +1,55 @@
+export PATH="$HOME/.local/bin:$PATH"
+uv venv ~/.venvs/podcastfy --python 3.12
+source ~/.venvs/podcastfy/bin/activate
+uv pip install podcastfy
+
+uv pip install playwright
+
+uv pip install "click==8.1.8"
+
+uv pip install "langchain==0.3.21" "langchain-community==0.3.20"
+
+# Test podcastfy CLI
+python -m podcastfy.client --help
+
+
+in powershell run
+setx OLLAMA_HOST "0.0.0.0:11434"
+
+in wsl2
+WIN_IP=$(ip route show | grep -i default | awk '{print $3}')
+
+cat << EOF > /mnt/e/Github/TTS/.env
+OPENAI_API_BASE=http://localhost:8880/v1
+OPENAI_API_KEY=not-needed
+OLLAMA_API_BASE=http://${WIN_IP}:11434
+EOF
+
+curl -s http://$WIN_IP:11434/api/tags
+
+
+
+# 1. From a local PDF or .txt file inside ./docs/
+python -m podcastfy.client \
+  --url ./docs/your-notes.pdf \
+  --llm-model-name "ollama/qwen3:4b" \
+  --tts-model openai \
+  --conversation-config ./conversation_config.yaml
+
+# 2. From a Markdown (.md) file inside ./docs/
+python -m podcastfy.client \
+  --text "$(cat ./docs/your-notes.md)" \
+  --llm-model-name "ollama/qwen3:4b" \
+  --tts-model openai \
+  --conversation-config ./conversation_config.yaml
+
+
+
+export DEEPSEEK_API_KEY="$ANTHROPIC_API_KEY"
+
+python -m podcastfy.client \
+  --text "$(cat /mnt/e/Github/TTS/docs/az104/AZ104_Audio_Notes_Part1.txt)" \
+  --llm-model-name "deepseek/deepseek-chat" \
+  --api-key-label DEEPSEEK_API_KEY \
+  --tts-model openai \
+  --conversation-config ./conversation_config.ya

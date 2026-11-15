@@ -1,0 +1,199 @@
+AZ-104 AUDIO NOTES. PART 3 OF 6.
+AZURE STORAGE.
+
+Alright bro, welcome to Part 3. Storage is a huge slice of the exam, and your questions on it were mostly good, so let's lock it in properly. Same style as before. I talk, you listen, and each chapter ends with a memory hook.
+
+The chapters in this part. Chapter one, the storage account and its four building blocks. Chapter two, account types and redundancy. Chapter three, access tiers and Data Lake. Chapter four, blob types and blob inventory. Chapter five, object replication. Chapter six, stored access policies and immutable storage. Chapter seven, encryption scopes. Chapter eight, network routing preference. Chapter nine, AzCopy. Chapter ten, backup frequency for blobs and files. Chapter eleven, bonus storage topics: SAS, firewalls, lifecycle management and soft delete.
+
+------------------------------------------------------------
+CHAPTER ONE. THE STORAGE ACCOUNT AND ITS FOUR SERVICES
+------------------------------------------------------------
+
+A storage account is the top level container for all your Azure Storage data. Inside one account you can have four services.
+
+Blob storage, for unstructured data like images, videos, backups and VM disks. Data lives in containers, and containers hold blobs.
+
+Azure Files, for managed file shares that you can mount with SMB or NFS. Data lives in file shares.
+
+Queue storage, for messages passed between application components.
+
+Table storage, a simple NoSQL store for structured data.
+
+Memory hook. Blobs go in containers. Files go in shares. Queues hold messages. Tables hold rows. Keep that vocabulary straight, because the exam loves to ask "what object do you create", and the answer changes with the service. In Question 13, replicating blobs to a new account meant creating a container in the destination. Not a file share, not a table, not a queue.
+
+------------------------------------------------------------
+CHAPTER TWO. ACCOUNT TYPES AND REDUNDANCY
+------------------------------------------------------------
+
+Account types. The standard one is General purpose version 2, called StorageV2. It supports blobs, files, queues and tables, and it's the default for almost everything. Then there are the premium types. Premium block blob accounts, called BlockBlobStorage, give low latency for blobs. Premium file shares, called FileStorage, are for high performance Azure Files. Premium page blobs are for page blob workloads.
+
+Now redundancy, meaning how many copies of your data exist and where. Learn these in order from cheapest to strongest.
+
+LRS, locally redundant storage. Three copies inside a single datacenter. Cheapest. Protects against hardware failure, but not against a whole datacenter going down.
+
+ZRS, zone redundant storage. Three copies spread across three availability zones in the SAME region. Protects against a datacenter or zone failure. Does NOT copy to another region.
+
+GRS, geo redundant storage. LRS in the primary region, PLUS another LRS copy in a paired secondary region far away. So data survives a full regional disaster. The secondary copy cannot be read unless failover happens.
+
+GZRS, geo zone redundant storage. ZRS in the primary region, plus an LRS copy in the secondary region. The strongest option.
+
+RA-GRS and RA-GZRS. The RA means read access. Same as GRS and GZRS, but you can also read from the secondary region at any time, without a failover.
+
+Question 44 used this. The storage account needed three things: Data Lake capability, cheap for infrequently accessed data, and automatic copy to another Azure region. The three answers were hierarchical namespace, the Cool tier, and GRS. Zone redundant storage was the trap, because ZRS stays inside one region. The Hot tier was the other trap, because Hot is for frequently accessed data and costs more to store.
+
+Memory hook. Another REGION means geo, which means GRS or GZRS. Another ZONE means ZRS. Same datacenter means LRS.
+
+------------------------------------------------------------
+CHAPTER THREE. ACCESS TIERS AND DATA LAKE
+------------------------------------------------------------
+
+Access tiers decide the trade off between storage cost and access cost.
+
+Hot. Highest storage cost, lowest access cost. For data you use all the time.
+
+Cool. Lower storage cost, higher access cost. For data you touch rarely. There's a minimum storage duration of 30 days.
+
+Cold. Even cheaper to store, with a 90 day minimum.
+
+Archive. The cheapest to store, but the data is offline. You cannot read it until you rehydrate it back to Hot or Cool, and that takes hours. Minimum 180 days.
+
+Memory hook. Colder means cheaper to keep, but pricier and slower to get back.
+
+Hierarchical namespace. This is the setting that turns a storage account into Azure Data Lake Storage Gen2. It gives you real folders and directories with fast rename and delete, instead of the flat structure normal blob storage uses. You must choose it when creating the account. Memory hook: Data Lake equals hierarchical namespace.
+
+Question 56 touched this. The content could be organized in data1, docs1 and docs2. The reasoning was: data1 sits in an account with hierarchical namespace, and file shares like docs1 and docs2 can use directories regardless of namespace. data2 sat in an account without hierarchical namespace, so it was left out.
+
+------------------------------------------------------------
+CHAPTER FOUR. BLOB TYPES AND BLOB INVENTORY
+------------------------------------------------------------
+
+There are three blob types.
+
+Block blobs. For general files like images, documents, backups, media. This is what you use almost always.
+
+Append blobs. Optimized for adding data only at the end. Perfect for log files.
+
+Page blobs. Optimized for random read and write, used for virtual hard disks of Azure VMs.
+
+Question 11. A blob inventory rule for a container full of images. The blob type to filter was blockBlob. Images are block blobs. Append blobs are for logs, page blobs are for VM disks.
+
+Question 12. The prefix match. You said just "finance", and the answer was "images/finance". The prefix must begin with the container name, then a slash, then the blob name prefix. So the container is images, and the blob names start with finance, written images/finance. A plain "finance" would not match, because the system expects the container name first. And "images/*" would match all blobs, not just finance ones.
+
+Memory hook. Prefix equals container name, slash, blob prefix. Always start with the container.
+
+Also, blob inventory generates reports in CSV or Parquet format on a schedule, daily or weekly, and writes them to a destination container.
+
+------------------------------------------------------------
+CHAPTER FIVE. OBJECT REPLICATION
+------------------------------------------------------------
+
+Object replication copies block blobs asynchronously from a source account to a destination account, based on rules. You set rules between a source container and a destination container.
+
+Requirements to remember. Both accounts must be General purpose v2 or Premium block blob accounts. In your question, the exam answer was "StorageV2 or BlobStorage only". Both accounts need blob versioning enabled, and the source also needs change feed enabled. Versioning is needed so that the replication can track which version to copy.
+
+Also: object replication works on block blobs only, and only on containers. It doesn't apply to Azure Files, tables or queues. It also works across regions or within the same region.
+
+Memory hook. Object replication needs versioning on both sides, and change feed on the source. And you must create a container in the destination.
+
+------------------------------------------------------------
+CHAPTER SIX. STORED ACCESS POLICIES AND IMMUTABLE STORAGE
+------------------------------------------------------------
+
+Stored access policy. This is a named set of permissions and expiry time attached to a container. You then create shared access signatures that point to this policy. The big benefit: if you need to revoke access, you change or delete the policy, and every SAS tied to it is affected. Without a stored policy, a SAS cannot be revoked before its expiry unless you rotate the account key.
+
+The limit. You can have up to FIVE stored access policies per container.
+
+Question 54. The container data2 already had three policies. How many more can you add? Two. You said one. Do the maths: five minus three equals two. The trap is just arithmetic under pressure. Always subtract from the maximum.
+
+Immutable storage, also called WORM, write once read many. It stops blobs from being changed or deleted for a period. There are two kinds of policy. A time based retention policy locks data for a fixed number of days. A legal hold locks data until you explicitly clear it, with no end date.
+
+Question 55. The container data2 already had a legal hold. How many more immutable policies can you create? The exam answer was one. You said five. The reasoning: a container can have at most two immutable policy types, one time based retention and one legal hold. A legal hold already exists, so one slot is left for the time based policy. Memory hook: immutability has two kinds, so two slots. Stored access policies have five slots. Do not mix the numbers. Five is for stored access policies. Two kinds is for immutability.
+
+------------------------------------------------------------
+CHAPTER SEVEN. ENCRYPTION SCOPES
+------------------------------------------------------------
+
+By default, all storage data is encrypted at rest with Microsoft managed keys. An encryption scope lets you use different keys for different containers or even individual blobs inside the same account. The keys can be Microsoft managed, or customer managed in Key Vault.
+
+Question 61. Which resources can be encrypted with an encryption scope? Containers and blobs, in that account only. Not file shares, not queues, not tables. Encryption scopes are a blob only feature. Also, a scope belongs to one storage account, so it cannot be used in a different account.
+
+Memory hook. Encryption scope equals blob service only. Containers and blobs.
+
+------------------------------------------------------------
+CHAPTER EIGHT. NETWORK ROUTING PREFERENCE
+------------------------------------------------------------
+
+Question 75. Users must reach the website content in storage through the Microsoft point of presence closest to them. You said load balancing. The answer was routing preference.
+
+Routing preference is a storage account setting. With Microsoft network routing, traffic enters Microsoft's global network at the edge location closest to the user, and then travels over Microsoft's private backbone to your storage account. That gives better performance. With Internet routing, traffic travels over the public internet for most of the journey and enters Microsoft's network closer to the storage region.
+
+Why not the others. A load balancer spreads traffic across VMs, it doesn't govern how storage traffic enters Microsoft's network. Azure Firewall filters traffic. Private endpoints give private connectivity but don't choose the entry point.
+
+Memory hook. Closest Microsoft entry point equals routing preference set to Microsoft network.
+
+------------------------------------------------------------
+CHAPTER NINE. AZCOPY
+------------------------------------------------------------
+
+AzCopy is a command line tool to copy data to and from storage. The main commands.
+
+azcopy make. Creates a container or file share. Question 70 used it, and the correct command was azcopy make with the blob endpoint, because containers live at blob dot core dot windows dot net.
+
+azcopy copy. Copies data between locations.
+
+azcopy sync. Keeps a destination in sync with a source.
+
+azcopy login. Signs in with Entra ID.
+
+azcopy list and azcopy remove, for listing and deleting.
+
+Endpoints also matter. The blob endpoint is blob dot core dot windows dot net. Files is file dot core. Queues is queue dot core. Tables is table dot core. Data Lake is dfs dot core. If the question says container, use blob. Any fake endpoint like "images" is wrong.
+
+Memory hook. Create a container equals azcopy make. Upload equals azcopy copy.
+
+------------------------------------------------------------
+CHAPTER TEN. BACKUP FREQUENCY FOR BLOBS AND FILES
+------------------------------------------------------------
+
+Questions 47 and 48 compared the two.
+
+For blobs, using vaulted backup, the schedule is daily or weekly. So the most frequent is Daily. Your answer was correct.
+
+For Azure Files, Azure Backup can take up to 24 snapshots a day, so you can set it hourly. You said every four hours, and the answer was every hour, because the case study demanded the highest frequency the service allows.
+
+Memory hook. Blob backup is daily at best. File share backup can be hourly. Files are more frequent than blobs.
+
+------------------------------------------------------------
+CHAPTER ELEVEN. BONUS STORAGE TOPICS
+------------------------------------------------------------
+
+Shared access signatures, SAS. A SAS is a signed URL giving limited, time limited access without sharing your account key. There are three kinds. User delegation SAS, secured with Entra ID credentials, blob only, the most secure. Service SAS, for one service, secured with the account key. Account SAS, across services, also account key.
+
+Storage firewalls and networking. By default a storage account is reachable over the public endpoint. You can restrict to selected virtual networks and IP ranges, or use private endpoints for full private access. Service endpoints keep traffic on Azure's backbone but the storage still has a public IP. Private endpoints give the storage a private IP inside your network.
+
+Lifecycle management. Rules that automatically move blobs between tiers, for example Hot to Cool after 30 days, to Archive after 90, and delete after a year. Great for cost control.
+
+Soft delete. Keeps deleted blobs, containers or file shares for a retention period so you can restore them. Blob versioning keeps previous versions automatically whenever a blob is overwritten.
+
+Authorization methods in order of preference. First Entra ID with RBAC, the best. Then SAS. Then the account access keys, least preferred, because they give full control.
+
+Failover. With geo redundancy, you can trigger a customer managed account failover, which makes the secondary region the new primary.
+
+------------------------------------------------------------
+PART THREE RAPID REVIEW
+------------------------------------------------------------
+
+One. Blobs live in containers. Files live in shares.
+Two. Another region means GRS or GZRS. Another zone means ZRS.
+Three. Cool is for rarely used data. Archive is offline.
+Four. Data Lake needs hierarchical namespace.
+Five. Images are block blobs. Logs are append blobs. VM disks are page blobs.
+Six. Inventory prefix starts with the container name.
+Seven. Object replication needs versioning, change feed on source, and a destination container.
+Eight. Five stored access policies per container. Two kinds of immutability policy.
+Nine. Encryption scopes work on blobs only.
+Ten. Routing preference controls the Microsoft entry point.
+Eleven. azcopy make creates containers.
+Twelve. Blob backup is daily. File backup can be hourly.
+
+That is Part 3. Say "next" for Part 4, Networking.
