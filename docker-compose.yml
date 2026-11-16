@@ -1,7 +1,27 @@
 services:
+  podcastfy-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: podcastfy-ui
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://kokoro-tts:8880/v1}
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-http://kokoro-tts:8880/v1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-not-needed}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+    volumes:
+      - ./data:/app/data
+      - ./docs:/app/docs:ro
+      - ./conversation_config.yaml:/app/conversation_config.yaml:ro
+
+  # Home PC (NVIDIA GPU): docker compose --profile gpu up -d --build
   kokoro-tts:
     image: ghcr.io/remsky/kokoro-fastapi-gpu:latest
     container_name: kokoro-tts
+    profiles: ["gpu"]
     restart: unless-stopped
     ports:
       - "8880:8880"
@@ -16,3 +36,19 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+
+  # Non-GPU PC (CPU): docker compose --profile cpu up -d --build
+  kokoro-tts-cpu:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
+    container_name: kokoro-tts-cpu
+    hostname: kokoro-tts
+    profiles: ["cpu"]
+    restart: unless-stopped
+    ports:
+      - "8880:8880"
+    volumes:
+      - ./models:/app/api/src/models
+    networks:
+      default:
+        aliases:
+          - kokoro-tts

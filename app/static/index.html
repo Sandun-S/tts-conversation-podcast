@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Podcastfy Studio</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-alt: #162032;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-alt);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    header h1 { margin: 0; font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+    header span.badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+    .container {
+      max-width: 1180px;
+      margin: 24px auto;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: 1.25fr 0.95fr;
+      gap: 20px;
+    }
+    @media (max-width: 920px) {
+      .container { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+    .card h2 {
+      margin: 0 0 12px 0;
+      font-size: 1rem;
+      color: var(--accent);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      margin-top: 10px;
+    }
+    input[type="text"], input[type="password"], input[type="number"], select, textarea {
+      width: 100%;
+      padding: 9px 11px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    textarea { resize: vertical; min-height: 100px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    .tab-btn.active {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--panel-alt);
+      transition: border-color 0.2s;
+      margin-top: 8px;
+    }
+    .dropzone.dragover { border-color: var(--accent); }
+    .dropzone p { margin: 4px 0; font-size: 0.88rem; color: var(--muted); }
+    .file-pill {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+      font-size: 0.82rem;
+    }
+
+    .btn {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #082f49;
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      margin-top: 14px;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 0.78rem;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-sm:hover { border-color: var(--accent); }
+
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--accent);
+      font-size: 0.95rem;
+      user-select: none;
+    }
+
+    .logs {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.78rem;
+      height: 260px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #cbd5e1;
+    }
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+    .pill {
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .pill-idle { background: #334155; color: #cbd5e1; }
+    .pill-running { background: rgba(245, 158, 11, 0.2); color: var(--warn); }
+    .pill-completed { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+    .pill-failed { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+    .pill-cancelled { background: rgba(148, 163, 184, 0.2); color: var(--muted); }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.18);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.45);
+    }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.3); }
+
+    .file-item {
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      margin-bottom: 10px;
+    }
+    .file-item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      word-break: break-all;
+    }
+    audio { width: 100%; margin-top: 8px; height: 36px; }
+    .hint { font-size: 0.76rem; color: var(--muted); margin-top: 4px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Podcastfy Studio <span class="badge">Docker + Edge & Kokoro TTS</span></h1>
+    <button class="btn btn-sm" id="resetDefaultsBtn" type="button">Reset Config to File Defaults</button>
+  </header>
+
+  <div class="container">
+    <!-- LEFT COLUMN: INPUT & CONFIG -->
+    <div>
+      <div class="card">
+        <h2>1. Pipeline Mode & Input</h2>
+        <div class="tabs">
+          <button type="button" class="tab-btn active" data-mode="full">
+            Notes → DeepSeek → Audio
+          </button>
+          <button type="button" class="tab-btn" data-mode="transcript_only">
+            Transcript Only → Audio (Skip LLM)
+          </button>
+        </div>
+        <p class="hint" id="modeHint">
+          Generates a two-host <code>&lt;Person1&gt;/&lt;Person2&gt;</code> script using DeepSeek, then converts it to audio.
+        </p>
+
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept=".txt,.md,.pdf" class="hidden" />
+          <p><strong>Click or drag & drop</strong> a <code>.txt</code>, <code>.md</code>, or <code>.pdf</code> file here</p>
+          <div id="selectedFile" class="file-pill hidden"></div>
+        </div>
+
+        <label for="textInput">Or paste notes / pre-formatted transcript directly</label>
+        <textarea id="textInput" placeholder="Paste study notes, or <Person1>...</Person1><Person2>...</Person2> transcript..."></textarea>
+      </div>
+
+      <div class="card">
+        <h2>
+          2. TTS Engine & Voices
+          <button type="button" class="btn btn-sm" id="refreshKokoroBtn">Check Kokoro Voices</button>
+        </h2>
+        <div class="tabs">
+          <button type="button" class="tab-btn active" data-tts="edge">Edge TTS (No GPU)</button>
+          <button type="button" class="tab-btn" data-tts="kokoro">Kokoro TTS (Docker)</button>
+        </div>
+
+        <div id="kokoroUrlWrap" class="hidden">
+          <label for="kokoroUrl">Kokoro Base URL</label>
+          <input type="text" id="kokoroUrl" value="http://kokoro-tts:8880/v1" />
+          <p class="hint" id="kokoroStatus">Uses Docker service <code>kokoro-tts:8880</code> (start with <code>--profile gpu</code> or <code>--profile cpu</code>).</p>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="voice1Select">Person 1 (Question / Host 1)</label>
+            <select id="voice1Select"></select>
+            <input type="text" id="voice1Custom" placeholder="Or type any custom voice ID" style="margin-top:6px" />
+          </div>
+          <div>
+            <label for="voice2Select">Person 2 (Answer / Host 2)</label>
+            <select id="voice2Select"></select>
+            <input type="text" id="voice2Custom" placeholder="Or type any custom voice ID" style="margin-top:6px" />
+          </div>
+        </div>
+        <p class="hint">Tip: In Kokoro, you can pick or type any voice (e.g. <code>af_heart</code>, <code>af_bella</code>, <code>am_michael</code>, <code>am_onyx</code>, <code>bm_george</code>).</p>
+      </div>
+
+      <div class="card" id="llmCard">
+        <details open>
+          <summary>3. API Keys & LLM Settings</summary>
+          <div class="row">
+            <div>
+              <label for="apiKey">API Key (DeepSeek / LLM)</label>
+              <input type="password" id="apiKey" placeholder="sk-... (optional if set in .env)" />
+            </div>
+            <div>
+              <label for="apiKeyLabel">API Key Env Label</label>
+              <input type="text" id="apiKeyLabel" value="DEEPSEEK_API_KEY" />
+            </div>
+          </div>
+          <label for="llmModel">LLM Model Name</label>
+          <input type="text" id="llmModel" value="deepseek/deepseek-chat" />
+        </details>
+      </div>
+
+      <div class="card">
+        <details>
+          <summary>4. Conversation Config (conversation_config.yaml)</summary>
+          <div class="row">
+            <div>
+              <label for="podcastName">Podcast Name</label>
+              <input type="text" id="podcastName" />
+            </div>
+            <div>
+              <label for="outputLanguage">Output Language</label>
+              <input type="text" id="outputLanguage" />
+            </div>
+          </div>
+          <label for="podcastTagline">Podcast Tagline</label>
+          <input type="text" id="podcastTagline" />
+
+          <div class="row">
+            <div>
+              <label for="rolesPerson1">Role Person 1</label>
+              <input type="text" id="rolesPerson1" />
+            </div>
+            <div>
+              <label for="rolesPerson2">Role Person 2</label>
+              <input type="text" id="rolesPerson2" />
+            </div>
+          </div>
+
+          <label for="conversationStyle">Conversation Style (comma-separated)</label>
+          <input type="text" id="conversationStyle" />
+
+          <label for="engagementTechniques">Engagement Techniques (comma-separated)</label>
+          <input type="text" id="engagementTechniques" />
+
+          <label for="dialogueStructure">Dialogue Structure (one per line)</label>
+          <textarea id="dialogueStructure" style="min-height:80px"></textarea>
+
+          <div class="row">
+            <div>
+              <label for="creativity">Creativity (0.0 – 1.0)</label>
+              <input type="number" id="creativity" min="0" max="1" step="0.1" />
+            </div>
+            <div>
+              <label for="audioFormat">Audio Format</label>
+              <select id="audioFormat">
+                <option value="mp3">mp3</option>
+                <option value="wav">wav</option>
+              </select>
+            </div>
+          </div>
+
+          <label for="endingMessage">Ending Message</label>
+          <input type="text" id="endingMessage" />
+        </details>
+
+        <button class="btn btn-primary" id="generateBtn" type="button">Generate Podcast</button>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: PROGRESS & OUTPUTS -->
+    <div>
+      <div class="card">
+        <h2>Generation Status & Logs</h2>
+        <div class="status-bar">
+          <span id="jobIdLabel">No active job</span>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button type="button" class="btn btn-sm btn-danger hidden" id="cancelBtn">Cancel Job</button>
+            <span class="pill pill-idle" id="statusPill">idle</span>
+          </div>
+        </div>
+        <div class="logs" id="logsBox">Ready. Attach a file or paste notes/transcript and click Generate Podcast.</div>
+        <div id="jobResultBox" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <h2>
+          Generated Episodes & Transcripts
+          <button type="button" class="btn btn-sm" id="refreshFilesBtn">Refresh</button>
+        </h2>
+        <div id="filesList">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "podcastfy_studio_settings_v1";
+    let state = {
+      mode: "full",
+      tts: "edge",
+      voices: { edge: [], kokoro: [] },
+      defaults: {},
+      activeJobId: null,
+      pollTimer: null,
+    };
+
+    const el = (id) => document.getElementById(id);
+
+    function populateVoiceDropdowns(provider, list) {
+      const v1Sel = el("voice1Select");
+      const v2Sel = el("voice2Select");
+      v1Sel.innerHTML = "";
+      v2Sel.innerHTML = "";
+      list.forEach((v) => {
+        v1Sel.add(new Option(v, v));
+        v2Sel.add(new Option(v, v));
+      });
+      const def1 = provider === "kokoro" ? state.defaults.kokoro_voice_1 : state.defaults.edge_voice_1;
+      const def2 = provider === "kokoro" ? state.defaults.kokoro_voice_2 : state.defaults.edge_voice_2;
+      if (def1 && list.includes(def1)) v1Sel.value = def1;
+      if (def2 && list.includes(def2)) v2Sel.value = def2;
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      document.querySelectorAll("[data-mode]").forEach((b) => {
+        b.classList.toggle("active", b.dataset.mode === mode);
+      });
+      el("llmCard").classList.toggle("hidden", mode === "transcript_only");
+      el("modeHint").innerHTML =
+        mode === "transcript_only"
+          ? "Skips DeepSeek/LLM completely and converts your <code>&lt;Person1&gt;/&lt;Person2&gt;</code> transcript directly to audio."
+          : "Generates a two-host <code>&lt;Person1&gt;/&lt;Person2&gt;</code> script using DeepSeek, then converts it to audio.";
+      saveSettings();
+    }
+
+    function setTTS(tts) {
+      state.tts = tts;
+      document.querySelectorAll("[data-tts]").forEach((b) => {
+        b.classList.toggle("active", b.dataset.tts === tts);
+      });
+      el("kokoroUrlWrap").classList.toggle("hidden", tts !== "kokoro");
+      populateVoiceDropdowns(tts, state.voices[tts] || []);
+      el("voice1Custom").value = "";
+      el("voice2Custom").value = "";
+      saveSettings();
+    }
+
+    function applyConfigToForm(cfg) {
+      el("podcastName").value = cfg.podcast_name || "";
+      el("podcastTagline").value = cfg.podcast_tagline || "";
+      el("rolesPerson1").value = cfg.roles_person1 || "";
+      el("rolesPerson2").value = cfg.roles_person2 || "";
+      el("conversationStyle").value = Array.isArray(cfg.conversation_style)
+        ? cfg.conversation_style.join(", ")
+        : cfg.conversation_style || "";
+      el("engagementTechniques").value = Array.isArray(cfg.engagement_techniques)
+        ? cfg.engagement_techniques.join(", ")
+        : cfg.engagement_techniques || "";
+      el("dialogueStructure").value = Array.isArray(cfg.dialogue_structure)
+        ? cfg.dialogue_structure.join("\n")
+        : cfg.dialogue_structure || "";
+      el("outputLanguage").value = cfg.output_language || "English";
+      el("creativity").value = cfg.creativity ?? 0.6;
+      el("endingMessage").value = cfg.ending_message || "";
+      el("audioFormat").value = cfg.audio_format || "mp3";
+      el("llmModel").value = cfg.llm_model || "deepseek/deepseek-chat";
+      el("kokoroUrl").value = cfg.kokoro_url || "http://kokoro-tts:8880/v1";
+    }
+
+    function saveSettings() {
+      const data = {
+        mode: state.mode,
+        tts: state.tts,
+        kokoroUrl: el("kokoroUrl").value,
+        voice1Select: el("voice1Select").value,
+        voice2Select: el("voice2Select").value,
+        voice1Custom: el("voice1Custom").value,
+        voice2Custom: el("voice2Custom").value,
+        apiKeyLabel: el("apiKeyLabel").value,
+        llmModel: el("llmModel").value,
+        podcastName: el("podcastName").value,
+        podcastTagline: el("podcastTagline").value,
+        rolesPerson1: el("rolesPerson1").value,
+        rolesPerson2: el("rolesPerson2").value,
+        conversationStyle: el("conversationStyle").value,
+        engagementTechniques: el("engagementTechniques").value,
+        dialogueStructure: el("dialogueStructure").value,
+        outputLanguage: el("outputLanguage").value,
+        creativity: el("creativity").value,
+        endingMessage: el("endingMessage").value,
+        audioFormat: el("audioFormat").value,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function restoreSettings() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const d = JSON.parse(raw);
+        if (d.mode) setMode(d.mode);
+        if (d.tts) setTTS(d.tts);
+        if (d.kokoroUrl) el("kokoroUrl").value = d.kokoroUrl;
+        if (d.voice1Select) el("voice1Select").value = d.voice1Select;
+        if (d.voice2Select) el("voice2Select").value = d.voice2Select;
+        if (d.voice1Custom !== undefined) el("voice1Custom").value = d.voice1Custom;
+        if (d.voice2Custom !== undefined) el("voice2Custom").value = d.voice2Custom;
+        if (d.apiKeyLabel) el("apiKeyLabel").value = d.apiKeyLabel;
+        if (d.llmModel) el("llmModel").value = d.llmModel;
+        if (d.podcastName !== undefined) el("podcastName").value = d.podcastName;
+        if (d.podcastTagline !== undefined) el("podcastTagline").value = d.podcastTagline;
+        if (d.rolesPerson1 !== undefined) el("rolesPerson1").value = d.rolesPerson1;
+        if (d.rolesPerson2 !== undefined) el("rolesPerson2").value = d.rolesPerson2;
+        if (d.conversationStyle !== undefined) el("conversationStyle").value = d.conversationStyle;
+        if (d.engagementTechniques !== undefined) el("engagementTechniques").value = d.engagementTechniques;
+        if (d.dialogueStructure !== undefined) el("dialogueStructure").value = d.dialogueStructure;
+        if (d.outputLanguage !== undefined) el("outputLanguage").value = d.outputLanguage;
+        if (d.creativity !== undefined) el("creativity").value = d.creativity;
+        if (d.endingMessage !== undefined) el("endingMessage").value = d.endingMessage;
+        if (d.audioFormat) el("audioFormat").value = d.audioFormat;
+      } catch (_) {}
+    }
+
+    async function refreshKokoroVoices() {
+      const url = el("kokoroUrl").value.trim();
+      el("kokoroStatus").textContent = "Querying Kokoro voices...";
+      try {
+        const res = await fetch(`/api/kokoro-voices?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        state.voices.kokoro = data.voices || state.voices.kokoro;
+        if (state.tts === "kokoro") {
+          populateVoiceDropdowns("kokoro", state.voices.kokoro);
+        }
+        el("kokoroStatus").textContent = data.reachable
+          ? `Connected to Kokoro (${data.voices.length} voices loaded).`
+          : `Kokoro not reachable at ${url} — using preset list.`;
+      } catch (err) {
+        el("kokoroStatus").textContent = `Could not reach Kokoro: ${err.message}`;
+      }
+    }
+
+    async function refreshFiles() {
+      const res = await fetch("/api/files");
+      const data = await res.json();
+      const box = el("filesList");
+      if (!data.audio.length && !data.transcripts.length) {
+        box.innerHTML = `<p class="hint">No generated files yet.</p>`;
+        return;
+      }
+      let html = "";
+      data.audio.forEach((f) => {
+        const mb = (f.size / (1024 * 1024)).toFixed(2);
+        html += `
+          <div class="file-item">
+            <div class="file-item-head">
+              <strong>${f.name}</strong>
+              <a class="btn btn-sm" href="${f.url}" download>Download (${mb} MB)</a>
+            </div>
+            <audio controls src="${f.url}"></audio>
+          </div>`;
+      });
+      data.transcripts.slice(0, 10).forEach((f) => {
+        const kb = (f.size / 1024).toFixed(1);
+        html += `
+          <div class="file-item">
+            <div class="file-item-head">
+              <span>Transcript: ${f.name}</span>
+              <a class="btn btn-sm" href="${f.url}" download>Download (${kb} KB)</a>
+            </div>
+          </div>`;
+      });
+      box.innerHTML = html;
+    }
+
+    async function pollJob(jobId) {
+      const res = await fetch(`/api/jobs/${jobId}`);
+      const job = await res.json();
+      const pill = el("statusPill");
+      pill.textContent = job.status;
+      pill.className = `pill pill-${job.status}`;
+      el("logsBox").textContent = (job.logs || []).join("\n") || "Starting...";
+      el("logsBox").scrollTop = el("logsBox").scrollHeight;
+      el("cancelBtn").classList.toggle("hidden", job.status !== "running");
+
+      if (job.status === "running") {
+        state.pollTimer = setTimeout(() => pollJob(jobId), 1500);
+      } else {
+        el("generateBtn").disabled = false;
+        refreshFiles();
+        if (job.new_audio && job.new_audio.length) {
+          const url = `/api/download/audio/${encodeURIComponent(job.new_audio[0])}`;
+          el("jobResultBox").innerHTML = `
+            <div class="file-item">
+              <div class="file-item-head">
+                <strong>Ready: ${job.new_audio[0]}</strong>
+                <a class="btn btn-sm" href="${url}" download>Download</a>
+              </div>
+              <audio controls autoplay src="${url}"></audio>
+            </div>`;
+        }
+      }
+    }
+
+    async function generatePodcast() {
+      const fd = new FormData();
+      fd.append("mode", state.mode);
+      fd.append("tts_provider", state.tts);
+      fd.append("voice_1", el("voice1Custom").value.trim() || el("voice1Select").value);
+      fd.append("voice_2", el("voice2Custom").value.trim() || el("voice2Select").value);
+      fd.append("kokoro_url", el("kokoroUrl").value.trim());
+      fd.append("llm_model", el("llmModel").value.trim());
+      fd.append("api_key", el("apiKey").value.trim());
+      fd.append("api_key_label", el("apiKeyLabel").value.trim());
+      fd.append("text_input", el("textInput").value);
+      fd.append("podcast_name", el("podcastName").value);
+      fd.append("podcast_tagline", el("podcastTagline").value);
+      fd.append("roles_person1", el("rolesPerson1").value);
+      fd.append("roles_person2", el("rolesPerson2").value);
+      fd.append("conversation_style", el("conversationStyle").value);
+      fd.append("engagement_techniques", el("engagementTechniques").value);
+      fd.append("dialogue_structure", el("dialogueStructure").value);
+      fd.append("output_language", el("outputLanguage").value);
+      fd.append("creativity", el("creativity").value);
+      fd.append("ending_message", el("endingMessage").value);
+      fd.append("audio_format", el("audioFormat").value);
+
+      const file = el("fileInput").files[0];
+      if (file) fd.append("file", file);
+
+      el("generateBtn").disabled = true;
+      el("jobResultBox").innerHTML = "";
+      el("logsBox").textContent = "Submitting job...";
+
+      try {
+        const res = await fetch("/api/generate", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || "Request failed");
+        }
+        state.activeJobId = data.job_id;
+        el("jobIdLabel").textContent = `Job: ${data.job_id}`;
+        pollJob(data.job_id);
+      } catch (err) {
+        el("generateBtn").disabled = false;
+        el("statusPill").textContent = "failed";
+        el("statusPill").className = "pill pill-failed";
+        el("logsBox").textContent = `Error: ${err.message}`;
+      }
+    }
+
+    // Wire events
+    document.querySelectorAll("[data-mode]").forEach((btn) =>
+      btn.addEventListener("click", () => setMode(btn.dataset.mode))
+    );
+    document.querySelectorAll("[data-tts]").forEach((btn) =>
+      btn.addEventListener("click", () => setTTS(btn.dataset.tts))
+    );
+
+    const dropzone = el("dropzone");
+    const fileInput = el("fileInput");
+    dropzone.addEventListener("click", () => fileInput.click());
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        showSelectedFile(e.dataTransfer.files[0]);
+      }
+    });
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files.length) showSelectedFile(fileInput.files[0]);
+    });
+    function showSelectedFile(f) {
+      const pill = el("selectedFile");
+      pill.textContent = `Attached: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+      pill.classList.remove("hidden");
+    }
+
+    document.querySelectorAll("input, select, textarea").forEach((node) => {
+      if (node.id !== "apiKey" && node.id !== "textInput" && node.id !== "fileInput") {
+        node.addEventListener("change", saveSettings);
+      }
+    });
+
+    el("generateBtn").addEventListener("click", generatePodcast);
+    el("cancelBtn").addEventListener("click", async () => {
+      if (!state.activeJobId) return;
+      el("cancelBtn").disabled = true;
+      try {
+        await fetch(`/api/jobs/${state.activeJobId}/cancel`, { method: "POST" });
+      } finally {
+        el("cancelBtn").disabled = false;
+      }
+    });
+    el("refreshFilesBtn").addEventListener("click", refreshFiles);
+    el("refreshKokoroBtn").addEventListener("click", refreshKokoroVoices);
+    el("resetDefaultsBtn").addEventListener("click", () => {
+      localStorage.removeItem(STORAGE_KEY);
+      applyConfigToForm(state.defaults);
+      setMode("full");
+      setTTS(state.defaults.tts_provider || "edge");
+    });
+
+    // Init
+    (async () => {
+      const res = await fetch("/api/defaults");
+      const data = await res.json();
+      state.defaults = data.config;
+      state.voices = data.voices;
+      applyConfigToForm(state.defaults);
+      setTTS(state.defaults.tts_provider || "edge");
+      restoreSettings();
+      if (data.has_env_deepseek) {
+        el("apiKey").placeholder = "Using DEEPSEEK_API_KEY from container env (or override here)";
+      }
+      refreshFiles();
+    })();
+  </script>
+</body>
+</html>

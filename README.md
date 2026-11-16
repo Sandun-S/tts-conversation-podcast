@@ -1,6 +1,31 @@
 # TTS Podcast Generator (Podcastfy + Kokoro TTS + DeepSeek)
 
-Turn study notes and technical documents into two-host audio podcasts using **Podcastfy**, **DeepSeek** (`deepseek/deepseek-chat`) for script generation, and a local GPU-accelerated **Kokoro TTS** server (`kokoro-fastapi-gpu`) via Docker.
+Turn study notes and technical documents into two-host audio podcasts using **Podcastfy**, **DeepSeek** (`deepseek/deepseek-chat`) for script generation, and **Edge TTS** or a local **Kokoro TTS** server (`kokoro-fastapi-gpu` / `kokoro-fastapi-cpu`) via Docker.
+
+---
+
+## Quick Start (Docker + Web UI)
+
+The `podcastfy-ui` service (`syntaxsan/tts_conversation_podcast-podcastfy:latest`) provides a browser UI at **`http://localhost:8000`** with:
+- `.txt`, `.md`, and `.pdf` upload (or direct text paste)
+- **Notes → DeepSeek → Audio** and **Transcript Only → Audio (Skip LLM)** modes
+- **Edge TTS** (with SSML-stripping & retry patch) and **Kokoro TTS** switching with custom Person 1 / Person 2 voices
+- Full `conversation_config.yaml` and API key configuration in the UI
+
+Start with the profile matching your machine:
+
+- **Edge TTS only (no GPU):**
+  ```bash
+  docker compose up -d
+  ```
+- **With Kokoro CPU (no GPU):**
+  ```bash
+  docker compose --profile cpu up -d
+  ```
+- **With Kokoro GPU (home PC with NVIDIA GPU):**
+  ```bash
+  docker compose --profile gpu up -d
+  ```
 
 ---
 
