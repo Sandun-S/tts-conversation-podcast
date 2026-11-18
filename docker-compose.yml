@@ -1,8 +1,6 @@
 services:
   podcastfy-ui:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: syntaxsan/tts_conversation_podcast-podcastfy:latest
     container_name: podcastfy-ui
     restart: unless-stopped
     ports:
@@ -28,7 +26,8 @@ services:
     environment:
       - USE_GPU=true
     volumes:
-      - ./models:/app/api/src/models
+      # - ./models:/app/api/src/models
+      - kokoro_models:/app/api/src/models
     deploy:
       resources:
         reservations:
@@ -47,8 +46,12 @@ services:
     ports:
       - "8880:8880"
     volumes:
-      - ./models:/app/api/src/models
+      # - ./models:/app/api/src/models
+      - kokoro_models:/app/api/src/models
     networks:
       default:
         aliases:
           - kokoro-tts
+
+volumes:
+  kokoro_models:

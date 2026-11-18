@@ -209,6 +209,31 @@
       border: 1px solid rgba(239, 68, 68, 0.45);
     }
     .btn-danger:hover { background: rgba(239, 68, 68, 0.3); }
+    .progress-wrap {
+      width: 100%;
+      height: 8px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), #818cf8);
+      border-radius: 999px;
+      transition: width 0.35s ease;
+    }
+    .progress-bar.running {
+      background: linear-gradient(90deg, var(--accent), #818cf8, var(--accent));
+      background-size: 200% 100%;
+      animation: progressShimmer 1.5s linear infinite;
+    }
+    @keyframes progressShimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: 0% 0; }
+    }
 
     .file-item {
       padding: 10px;
@@ -380,6 +405,10 @@
             <button type="button" class="btn btn-sm btn-danger hidden" id="cancelBtn">Cancel Job</button>
             <span class="pill pill-idle" id="statusPill">idle</span>
           </div>
+        </div>
+        <div class="hidden" id="progressLabel" style="font-size:0.8rem; color:var(--muted); margin-bottom:4px;"></div>
+        <div class="progress-wrap hidden" id="progressWrap">
+          <div class="progress-bar" id="progressBar"></div>
         </div>
         <div class="logs" id="logsBox">Ready. Attach a file or paste notes/transcript and click Generate Podcast.</div>
         <div id="jobResultBox" style="margin-top:12px"></div>
@@ -575,8 +604,15 @@
       box.innerHTML = html;
     }
 
+    const ACTIVE_JOB_KEY = "podcastfy_active_job_id";
+
     async function pollJob(jobId) {
       const res = await fetch(`/api/jobs/${jobId}`);
+      if (!res.ok) {
+        localStorage.removeItem(ACTIVE_JOB_KEY);
+        el("generateBtn").disabled = false;
+        return;
+      }
       const job = await res.json();
       const pill = el("statusPill");
       pill.textContent = job.status;
@@ -585,9 +621,54 @@
       el("logsBox").scrollTop = el("logsBox").scrollHeight;
       el("cancelBtn").classList.toggle("hidden", job.status !== "running");
 
+      const progressWrap = el("progressWrap");
+      const progressBar = el("progressBar");
+      const progressLabel = el("progressLabel");
+      const logsArr = job.logs || [];
+      const ttsMatches = [...logsArr.join("\n").matchAll(/\[TTS\]\s+(\d+)(?:\/(\d+))?/g)];
+      const lastTts = ttsMatches.length ? ttsMatches[ttsMatches.length - 1] : null;
+
+      if (job.status === "running") {
+        progressWrap.classList.remove("hidden");
+        progressLabel.classList.remove("hidden");
+        progressBar.classList.add("running");
+        if (lastTts) {
+          const cur = parseInt(lastTts[1], 10);
+          const tot = lastTts[2] ? parseInt(lastTts[2], 10) : null;
+          if (tot && tot > 0) {
+            const pct = Math.min(99, Math.max(5, Math.round((cur / tot) * 100)));
+            progressBar.style.width = `${pct}%`;
+            progressLabel.textContent = `TTS: ${cur} / ${tot} (${pct}%)`;
+          } else {
+            progressBar.style.width = "65%";
+            progressLabel.textContent = `TTS: ${cur} turns processed...`;
+          }
+        } else {
+          const logText = logsArr.join("\n").toLowerCase();
+          let pct = 15;
+          if (logText.includes("generating podcast") || logText.includes("transcript")) pct = 35;
+          if (logText.includes("converting text to speech") || logText.includes("audio")) pct = 50;
+          progressBar.style.width = `${pct}%`;
+          progressLabel.textContent = "Preparing...";
+        }
+      } else if (job.status === "completed") {
+        progressWrap.classList.remove("hidden");
+        progressLabel.classList.remove("hidden");
+        progressBar.classList.remove("running");
+        progressBar.style.width = "100%";
+        progressLabel.textContent = "Completed (100%)";
+      } else {
+        progressWrap.classList.add("hidden");
+        progressLabel.classList.add("hidden");
+        progressBar.classList.remove("running");
+        progressBar.style.width = "0%";
+        progressLabel.textContent = "";
+      }
+
       if (job.status === "running") {
         state.pollTimer = setTimeout(() => pollJob(jobId), 1500);
       } else {
+        localStorage.removeItem(ACTIVE_JOB_KEY);
         el("generateBtn").disabled = false;
         refreshFiles();
         if (job.new_audio && job.new_audio.length) {
@@ -641,6 +722,7 @@
           throw new Error(data.detail || "Request failed");
         }
         state.activeJobId = data.job_id;
+        localStorage.setItem(ACTIVE_JOB_KEY, data.job_id);
         el("jobIdLabel").textContent = `Job: ${data.job_id}`;
         pollJob(data.job_id);
       } catch (err) {
@@ -722,6 +804,13 @@
         el("apiKey").placeholder = "Using DEEPSEEK_API_KEY from container env (or override here)";
       }
       refreshFiles();
+      const savedJobId = localStorage.getItem(ACTIVE_JOB_KEY);
+      if (savedJobId) {
+        state.activeJobId = savedJobId;
+        el("jobIdLabel").textContent = `Job: ${savedJobId}`;
+        el("generateBtn").disabled = true;
+        pollJob(savedJobId);
+      }
     })();
   </script>
 </body>

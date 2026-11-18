@@ -7,6 +7,7 @@ Turn study notes and technical documents into two-host audio podcasts using **Po
 ## Quick Start (Docker + Web UI)
 
 The `podcastfy-ui` service (`syntaxsan/tts_conversation_podcast-podcastfy:latest`) provides a browser UI at **`http://localhost:8000`** with:
+
 - `.txt`, `.md`, and `.pdf` upload (or direct text paste)
 - **Notes → DeepSeek → Audio** and **Transcript Only → Audio (Skip LLM)** modes
 - **Edge TTS** (with SSML-stripping & retry patch) and **Kokoro TTS** switching with custom Person 1 / Person 2 voices
@@ -64,7 +65,7 @@ Start the Kokoro TTS service:
 docker compose up -d
 ```
 
-The OpenAI-compatible TTS endpoint will be available at `http://localhost:8880/v1`.
+The OpenAI-compatible TTS endpoint will be available at `http://localhost:8880/v1`. web ui is at `http://localhost:8880/web/`
 
 ### 2. Python Environment
 
@@ -128,5 +129,6 @@ python -m podcastfy.client \
 ```
 
 Generated files are saved to:
+
 - **Transcripts:** `./data/transcripts/`
 - **Audio (`.mp3`):** `./data/audio/`

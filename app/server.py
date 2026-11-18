@@ -389,7 +389,7 @@ async def generate_podcast(
     cmd = [
         "python",
         "-m",
-        "podcastfy.client",
+        "app.tts_progress_runner",
         "--tts-model",
         podcastfy_tts_model,
         "--conversation-config",

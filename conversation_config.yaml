@@ -26,7 +26,7 @@ text_to_speech:
   openai:
     default_voices:
       question: af_heart
-      answer: am_adam
+      answer: am_michael
     model: kokoro
   audio_format: mp3
   temp_audio_dir: ./data/audio/tmp/
